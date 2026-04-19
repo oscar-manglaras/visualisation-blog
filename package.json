@@ -1,0 +1,26 @@
+{
+  "name": "visualisation-blog",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "npx tsc --build",
+    "clean": "npx tsc --build --clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oscar-manglaras/visualisation-blog.git"
+  },
+  "author": "Oscar Manglaras",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oscar-manglaras/visualisation-blog/issues"
+  },
+  "homepage": "https://github.com/oscar-manglaras/visualisation-blog#readme",
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "eslint": "^10.2.0",
+    "typescript": "^6.0.2"
+  }
+}
