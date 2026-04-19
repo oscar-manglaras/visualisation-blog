@@ -2,19 +2,19 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 type State = 'ACT'|'NSW'|'NT'|'QLD'|'SA'|'TAS'|'VIC'|'WA';
 
-interface ElectionResults {
+export interface ElectionResults {
     year: number;
     electorates: ElectorateResult[];
 }
 
-interface ElectorateResult {
+export interface ElectorateResult {
     state: State;
     name: string;
     results: RoundResult[][];
     candidates: Candidate[]
 }
 
-interface Candidate {
+export interface Candidate {
     given_name: string;
     surname: string;
     party_name: string;
@@ -24,7 +24,7 @@ interface Candidate {
     ballot_id: number;
 }
 
-interface RoundResult {
+export interface RoundResult {
     candidate: Candidate | undefined;
     round: number;
     count: number;
