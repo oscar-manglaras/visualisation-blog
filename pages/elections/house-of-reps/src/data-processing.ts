@@ -63,7 +63,7 @@ export async function fetch_data() {
                         round: round,
                         candidate: candidates.find(c => c.ballot_id === ballot_id),
                         count: parseInt(d.find(d => d.CalculationType === 'Preference Count')?.CalculationValue ?? ''),
-                        percentage: parseInt(d.find(d => d.CalculationType === 'Preference Percent')?.CalculationValue ?? ''),
+                        percentage: parseFloat(d.find(d => d.CalculationType === 'Preference Percent')?.CalculationValue ?? ''),
                     })
                 })
 
