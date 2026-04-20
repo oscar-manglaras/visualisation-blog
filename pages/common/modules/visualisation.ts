@@ -40,7 +40,8 @@ export abstract class Visualisation<T> {
     update_options(this: Visualisation<T>, options?: VisualisationOptions): void {
         d3.select(this._container)
             .style('width', options?.w ?? '')
-            .style('height', options?.h ?? '');
+            .style('height', options?.h ?? '')
+            .style('max-height', options?.max_h ?? '');
 
         d3.select(this.svg)
             .style('min-width', options?.min_w ?? '')
