@@ -5,6 +5,7 @@ export const partyColourMapping: Record<string,string> = {
     LP:     '#0a52bd',
     LNP:    '#0a52bd',
     GRN:    '#51a702',
+    GVIC: '#51a702',
     ON:     '#c75300',
     IND:    '#757575',
     NP:     '#007056',
