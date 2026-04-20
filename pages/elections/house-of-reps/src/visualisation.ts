@@ -9,7 +9,7 @@ interface Node {
     votes: number;
     offset: number;
 
-    transfers: Set<Link>;
+    transfers: Link[];
 }
 
 interface Link {
@@ -69,7 +69,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     round: round,
                     candidate: candidateResult.candidate,
                     votes: candidateResult.count,
-                    transfers: new Set(),
+                    transfers: [],
                     offset: 0,
                 };
 
@@ -90,14 +90,14 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 if (!eliminatedNode) throw new Error(`failed to find previous node for eliminated candidate ${eliminatedCandidate}`);
 
                 // Add link from previous node to new one for same candidate.
-                prevNode.transfers.add({
+                prevNode.transfers.push({
                     source: prevNode,
                     target: newNode,
                     votes: prevNode.votes,
                 });
 
                 // Add link from previous node of eliminated candidate to new node.
-                eliminatedNode.transfers.add({
+                eliminatedNode.transfers.push({
                     source: eliminatedNode,
                     target: newNode,
                     votes: candidateResult.change,
@@ -125,8 +125,6 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             }
         });
 
-        // this.rootNodes = [...roundNodes[0]?.values()??[]];
-        console.log(this.nodes.map(d => [...d.values()]));
         this.draw();
     }
 
@@ -212,13 +210,75 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     y += (this.labelPadding - diff);
                     console.log('moving', candidate.surname, 'below', prev.candidate.surname, diff, y);
                 }
-            }   
+            }
         }
 
         labelStore.push({y, originalY, candidate})
 
         console.log('setting', candidate.surname, 'to', y);
         return y;
+    }
+
+    private sortLinks(this: HousePreferenceFlowVisualisation, links: Link[], targetNodes: Node[]): Link[] {
+        const order = this.sortCandidates(targetNodes);
+        const nodeIndex = new Map<Node,number>(order.map((n,i) => [n, i]));
+
+        return links.toSorted((a,b) =>
+            (nodeIndex.get(a.target)!)
+            - (nodeIndex.get(b.target)!)
+        );
+    }
+
+    private drawSankeyCurve(this: HousePreferenceFlowVisualisation, link: Link): string {
+        const path = d3.path();
+        const source = link.source;
+        const target = link.target;
+
+        let votes: number = link.votes;
+        let sourceOffset: number = link.source.offset;
+        let targetOffset: number = link.target.offset;
+
+        // if the source was eliminated we need to calculate an offset for the link to avoid overlaps
+        if (source.candidate.ballot_id !== target.candidate.ballot_id) {
+            // we need to move it below the continuing votes at least
+            targetOffset += link.target.votes - link.votes;
+
+            const targetNodes = this.sortCandidates([...this.nodes[target.round]?.values()??[]]);
+            console.log('eliminated link!!!', targetNodes);
+            console.log(this.sortLinks(source.transfers, targetNodes));
+
+            console.log('calculating offset for link from', link.source.candidate.surname, 'to', link.target.candidate.surname);
+            const offset = sourceOffset;
+            for (const sortedLink of this.sortLinks(source.transfers, targetNodes)) {
+                if (sortedLink !== link) {
+                    console.log('adding offset', sortedLink.votes, 'for candidate', sortedLink.target.candidate.surname)
+                    sourceOffset += sortedLink.votes;
+                } else {
+                    console.log('aborting with offset', sourceOffset - offset);
+                    break;
+                }
+            }
+        }
+
+        const sourceX = this.roundScale(link.source.round);
+        const targetX = this.roundScale(link.target.round);
+
+        const sourceYTop = this.voteScale(sourceOffset);
+        const sourceYBottom = this.voteScale(sourceOffset + votes);
+        const targetYTop = this.voteScale(targetOffset);
+        const targetYBottom = this.voteScale(targetOffset + votes);
+
+        path.moveTo(sourceX, sourceYTop);
+        // path.lineTo(sourceX, this.roundScale(sourceOffset + votes));
+        // const d3link = d3.linkHorizontal();
+        const ctrl = (sourceX + targetX) / 2;
+        path.bezierCurveTo(ctrl, sourceYTop, ctrl, targetYTop, targetX, targetYTop);
+
+        path.lineTo(targetX, targetYBottom);
+        path.bezierCurveTo(ctrl, targetYBottom, ctrl, sourceYBottom, sourceX, sourceYBottom);
+        path.closePath()
+
+        return path.toString();
     }
 
     draw(this: HousePreferenceFlowVisualisation) {
@@ -252,7 +312,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     g.append('rect')
                         .attr('x', -10)
                         .attr('width', 20)
-                        .attr('fill', 'none')
+                        .attr('fill', 'lightgray')
                         .attr('stroke', 'black');
 
                     return g;
@@ -270,5 +330,23 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .select('rect')
                         .attr('height', this.voteScale(d.votes))
                 });
+
+        d3.select(this.svg)
+                .select('g.links')
+                .selectAll('g.round')
+                    .data(this.nodes)
+                    .join('g')
+                    .classed('round', true)
+                    .attr('transform', `translate(${this.padding.left+this.namePadding+10},${this.padding.top})`)
+                .selectAll('path.link')
+                    .data(d => [...d.values()].flatMap(d => [...d.transfers.values()]))
+                    .join('path')
+                    .classed('link', true)
+                    .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
+                    .attr('d', d => this.drawSankeyCurve(d))
+                    .attr('opacity', 0.3)
+                    .filter(d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
+                        .attr('opacity', 0.7)
+
     }
 }
