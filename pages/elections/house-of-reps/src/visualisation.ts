@@ -2,6 +2,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 import { Visualisation } from "../../../common/modules/visualisation.js";
 import type { Candidate, ElectorateResult } from "./data-processing.js";
+import { darken, partyColour } from "./colours.js";
 
 interface Node {
     round: number;
@@ -314,12 +315,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     if (!n[i]) throw new Error();
 
                     d3.select(n[i])
-                        .select('text')
-                        .text(`${d.candidate.surname},\n${d.candidate.given_name} (${d.candidate.party_abbr})`);
-
-                    d3.select(n[i])
                         .select('rect')
                         .attr('height', this.voteScale(d.votes))
+                        .attr('fill', partyColour(d.candidate.party_abbr));
                 });
 
         d3.select(this.svg)
@@ -332,12 +330,16 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .selectAll('path.link')
                     .data(d => [...d.values()].flatMap(d => [...d.transfers.values()]))
                     .join('path')
+                    .sort((a,b) => a.source.transfers.length - b.source.transfers.length)
                     .classed('link', true)
                     .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
                     .attr('d', d => this.drawSankeyCurve(d))
-                    .attr('opacity', 0.3)
+                    .attr('stroke', d => darken(partyColour(d.source.candidate.party_abbr), 1))
+                    .attr('stroke-width', 0.5)
+                    .attr('fill', d => partyColour(d.source.candidate.party_abbr))
+                    .attr('opacity', 0.8)
                     .filter(d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
-                        .attr('opacity', 0.7)
+                        .attr('opacity', 1)
 
     }
 }
