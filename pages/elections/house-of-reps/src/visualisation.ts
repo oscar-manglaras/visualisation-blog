@@ -236,10 +236,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 targetOffset += link.target.votes - link.votes;
             for (const sortedLink of this.sortLinks(source.transfers)) {
                 if (sortedLink !== link) {
-                    // console.log('adding offset', sortedLink.votes, 'for candidate', sortedLink.target.candidate.surname)
                     sourceOffset += sortedLink.votes;
                 } else {
-                    // console.log('aborting with offset', sourceOffset - offset);
                     break;
                 }
             }
@@ -281,9 +279,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .select('g.candidates')
             .attr('transform', `translate(${this.padding.left+this.namePadding-5}, ${this.padding.top})`)
             .selectAll('text')
-                .data(this.candidateOrder.reverse(), (_,i) => i)
+                .data(this.candidateOrder.toReversed(), (d) => `${this.data?.name}-${(d as Candidate).ballot_id}`)
                 .join('text')
-                .sort()
                 .attr('y', d => this.calculateLabelY(d, labelStore))
                 .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
                 .attr('dominant-baseline', 'middle')
