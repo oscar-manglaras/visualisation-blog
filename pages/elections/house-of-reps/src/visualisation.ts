@@ -280,7 +280,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     }
 
     private defineGradient(this: HousePreferenceFlowVisualisation, colour1: string, colour2: string): string | null {
-        if (colour1 === colour2) colour1;
+        if (colour1 === colour2) return colour1;
 
         const key = `${colour1}-${colour2}`.replaceAll(/[\(\)\#]/g, '_').replaceAll(' ', '.');
 
@@ -292,10 +292,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             // .attr('gradientUnits', 'userSpaceOnUse');
 
         newGradient.append('stop')
-            .attr('offset', '20%')
+            .attr('offset', '30%')
             .attr('stop-color', colour1);
         newGradient.append('stop')
-            .attr('offset', '80%')
+            .attr('offset', '70%')
             .attr('stop-color', colour2);
 
         return `url(#${key})`;
@@ -362,10 +362,12 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     .classed('link', true)
                     .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
                     .attr('d', d => this.drawSankeyCurve(d))
-                    .attr('stroke', d => (d.votes/this.totalVotes) > 0.01 ? null : this.defineGradient(
-                        darken(partyColour(d.source.candidate.party_abbr), 1),
-                        darken(partyColour(d.target.candidate.party_abbr), 1)
-                    ))
+                    .attr('stroke', d => (d.votes/this.totalVotes) > 0.01 ?
+                        null
+                        : this.defineGradient(
+                            darken(partyColour(d.source.candidate.party_abbr), 1),
+                            darken(partyColour(d.target.candidate.party_abbr), 1)
+                        ))
                     .attr('stroke-width', 0.5)
                     // .attr('fill', d => partyColour(d.source.candidate.party_abbr))
                     .attr('fill', d => this.defineGradient(
