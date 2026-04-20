@@ -2,7 +2,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import { fetch_data } from "./src/data-processing.js";
 import { HousePreferenceFlowVisualisation } from "./src/visualisation.js";
 
-const selected_electorate = d3.select('select#electorate');
+const selected_electorate = d3.select(document.querySelector('select#electorate') as HTMLInputElement);
 const figure: HTMLElement|null = document.querySelector('figure#visualisation');
 
 async function main() {
@@ -14,10 +14,12 @@ async function main() {
     const results = await fetch_data();
     const electorates_by_state = d3.group(results.electorates, d => d.state);
 
+    function updateVis(electorate: string): void {
+        vis.updateData( results.electorates.find( d => d.name === electorate ) )
+    }
+
     selected_electorate
-        .on('change', (e: Event) => vis.updateData(
-                                        results.electorates.find( d => d.name === (e.target as HTMLSelectElement)?.value )
-                                    ))
+        .on('change', (e: Event) => updateVis((e.target as HTMLSelectElement)?.value))
         .selectAll('optgroup')
             .data(electorates_by_state)
             .join('optgroup')
@@ -27,7 +29,11 @@ async function main() {
             .data(d => d[1])
             .join('option')
             .attr('value', d => d.name)
-            .text(d => d.name)
+            .text(d => d.name);
+
+    const already_selected = selected_electorate.node()?.value;
+    if (already_selected)
+        updateVis(already_selected);
 }
 
 main()
