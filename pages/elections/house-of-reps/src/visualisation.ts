@@ -308,14 +308,15 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .select('g.candidates')
             .attr('transform', `translate(${this.padding.left+this.namePadding-5}, ${this.padding.top})`)
             .selectAll('text')
-                .data(this.candidateOrder.toReversed(), (d) => `${this.data?.name}-${(d as Candidate).ballot_id}`)
+                .data(this.candidateOrder.toReversed()/*, (d) => `${this.data?.name}-${(d as Candidate).ballot_id}`*/)
                 .join('text')
                 .attr('y', d => this.calculateLabelY(d, labelStore))
                 .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
                 .attr('dominant-baseline', 'middle')
                 .attr('text-anchor', 'end')
                 .attr('font-size', '0.6rem')
-                .attr('white-space', 'pre-wrap');
+                .attr('white-space', 'pre-wrap')
+                .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) );
 
         d3.select(this.svg)
             .select('g.nodes')
