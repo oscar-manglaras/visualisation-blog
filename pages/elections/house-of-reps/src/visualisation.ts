@@ -28,6 +28,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     private labelPadding = 13;
     private namePadding = 100;
+    private bandWidth = 20;
 
     private candidateOrder: Candidate[] = [];
     private nodes: Map<Candidate,Node>[] = [];
@@ -193,8 +194,6 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         let y = this.voteScale(offset + votes/2);
         const originalY = y;
-        console.log(candidate.surname, 'ideally placed at', originalY);
-        console.log('threshold:', this.labelPadding);
 
         // resolve collisions against already placed labels
         for (const prev of labelStore) {
@@ -202,31 +201,22 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 const diff = prev.y - y;
                 if (diff < this.labelPadding){
                     y -= (this.labelPadding - diff);
-                    console.log('moving', candidate.surname, 'above', prev.candidate.surname, diff, y);
                 }
             } else {
                 const diff = y - prev.y;
                 if (diff < this.labelPadding){
                     y += (this.labelPadding - diff);
-                    console.log('moving', candidate.surname, 'below', prev.candidate.surname, diff, y);
                 }
             }
         }
 
         labelStore.push({y, originalY, candidate})
 
-        console.log('setting', candidate.surname, 'to', y);
         return y;
     }
 
-    private sortLinks(this: HousePreferenceFlowVisualisation, links: Link[], targetNodes: Node[]): Link[] {
-        const order = this.sortCandidates(targetNodes);
-        const nodeIndex = new Map<Node,number>(order.map((n,i) => [n, i]));
-
-        return links.toSorted((a,b) =>
-            (nodeIndex.get(a.target)!)
-            - (nodeIndex.get(b.target)!)
-        );
+    private sortLinks(this: HousePreferenceFlowVisualisation, links: Link[]): Link[] {
+        return links.toSorted((a,b) => a.target.offset - b.target.offset );
     }
 
     private drawSankeyCurve(this: HousePreferenceFlowVisualisation, link: Link): string {
@@ -241,27 +231,29 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         // if the source was eliminated we need to calculate an offset for the link to avoid overlaps
         if (source.candidate.ballot_id !== target.candidate.ballot_id) {
             // we need to move it below the continuing votes at least
-            targetOffset += link.target.votes - link.votes;
-
-            const targetNodes = this.sortCandidates([...this.nodes[target.round]?.values()??[]]);
-            console.log('eliminated link!!!', targetNodes);
-            console.log(this.sortLinks(source.transfers, targetNodes));
-
-            console.log('calculating offset for link from', link.source.candidate.surname, 'to', link.target.candidate.surname);
-            const offset = sourceOffset;
-            for (const sortedLink of this.sortLinks(source.transfers, targetNodes)) {
+            if (source.offset > target.offset)
+                targetOffset += link.target.votes - link.votes;
+            for (const sortedLink of this.sortLinks(source.transfers)) {
                 if (sortedLink !== link) {
-                    console.log('adding offset', sortedLink.votes, 'for candidate', sortedLink.target.candidate.surname)
+                    // console.log('adding offset', sortedLink.votes, 'for candidate', sortedLink.target.candidate.surname)
                     sourceOffset += sortedLink.votes;
                 } else {
-                    console.log('aborting with offset', sourceOffset - offset);
+                    // console.log('aborting with offset', sourceOffset - offset);
                     break;
                 }
             }
+
+        // If the offset for the same candidate has reduced, then a candidate higher on the screen
+        // has been eliminated, so shuffle around the offsets.
+        } else if (source.offset > target.offset) {
+            this.doNode([...this.nodes[source.round]?.values()??[]], d => d.transfers.length > 1, n => {
+                const preferenceVotes = n.transfers.find(d => d.target === target)?.votes ?? 0;
+                targetOffset += preferenceVotes;
+            });
         }
 
-        const sourceX = this.roundScale(link.source.round);
-        const targetX = this.roundScale(link.target.round);
+        const sourceX = this.roundScale(link.source.round) + this.bandWidth/2;
+        const targetX = this.roundScale(link.target.round) - this.bandWidth/2;
 
         const sourceYTop = this.voteScale(sourceOffset);
         const sourceYBottom = this.voteScale(sourceOffset + votes);
@@ -310,9 +302,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .join(enter => {
                     const g = enter.append('g');
                     g.append('rect')
-                        .attr('x', -10)
-                        .attr('width', 20)
-                        .attr('fill', 'lightgray')
+                        .attr('x', -this.bandWidth/2)
+                        .attr('width', this.bandWidth)
                         .attr('stroke', 'black');
 
                     return g;
