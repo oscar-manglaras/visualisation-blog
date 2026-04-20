@@ -35,6 +35,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private nodes: Map<Candidate,Node>[] = [];
     private roundScale = d3.scaleLinear();
     private voteScale = d3.scaleLinear();
+    private totalVotes = 0;
+
+    private gradients = new Map<string,string>();
 
     constructor(container: HTMLElement) {
         super(container, {
@@ -45,12 +48,17 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         const svg = d3.select(this.svg);
         svg.style('background-color', 'floralwhite')
+
+        svg.append('defs');
         svg.append('g').classed('candidates', true);
         svg.append('g').classed('links', true);
         svg.append('g').classed('nodes', true);
     }
 
     updateData(this: HousePreferenceFlowVisualisation, data?: ElectorateResult) {
+        d3.select(this.svg).select('defs').selectAll('linearGradient').remove();
+        this.gradients.clear();
+
         this.data = data;
         this.candidateOrder = this.calculateCandidateOrder();
         // this.candidates = data?.candidates ?? [];
@@ -112,10 +120,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         // sort the candidates in each round and calculate vote offsets
         const rootNodes = this.nodes.at(0);
         if (!rootNodes) throw new Error();
-        const voteTotal = d3.reduce(rootNodes, (prev, [_,node]) => prev + node.votes, 0);
-        console.log('voteTotal', voteTotal)
+        this.totalVotes = d3.reduce(rootNodes, (prev, [_,node]) => prev + node.votes, 0);
+        console.log('voteTotal', this.totalVotes)
 
-        this.voteScale.domain([0,voteTotal]);
+        this.voteScale.domain([0,this.totalVotes]);
 
         this.nodes.forEach(nodes => {
             const nodeIt = this.sortCandidates([...nodes.values()]);
@@ -260,8 +268,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const targetYBottom = this.voteScale(targetOffset + votes);
 
         path.moveTo(sourceX, sourceYTop);
-        // path.lineTo(sourceX, this.roundScale(sourceOffset + votes));
-        // const d3link = d3.linkHorizontal();
+
         const ctrl = (sourceX + targetX) / 2;
         path.bezierCurveTo(ctrl, sourceYTop, ctrl, targetYTop, targetX, targetYTop);
 
@@ -270,6 +277,28 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         path.closePath()
 
         return path.toString();
+    }
+
+    private defineGradient(this: HousePreferenceFlowVisualisation, colour1: string, colour2: string): string | null {
+        if (colour1 === colour2) colour1;
+
+        const key = `${colour1}-${colour2}`.replaceAll(/[\(\)\#]/g, '_').replaceAll(' ', '.');
+
+        if (this.gradients.has(key)) return `url(#${this.gradients.get(key)})`;
+
+        const newGradient = d3.select(this.svg).select('defs')
+            .append('linearGradient')
+            .attr('id', key)
+            // .attr('gradientUnits', 'userSpaceOnUse');
+
+        newGradient.append('stop')
+            .attr('offset', '20%')
+            .attr('stop-color', colour1);
+        newGradient.append('stop')
+            .attr('offset', '80%')
+            .attr('stop-color', colour2);
+
+        return `url(#${key})`;
     }
 
     draw(this: HousePreferenceFlowVisualisation) {
@@ -302,7 +331,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     g.append('rect')
                         .attr('x', -this.bandWidth/2)
                         .attr('width', this.bandWidth)
-                        .attr('stroke', 'black');
+                        .attr('stroke', 'black')
+                        .attr('stroke-width', 0.5);
 
                     return g;
                 })
@@ -331,12 +361,17 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     .classed('link', true)
                     .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
                     .attr('d', d => this.drawSankeyCurve(d))
-                    .attr('stroke', d => darken(partyColour(d.source.candidate.party_abbr), 1))
+                    .attr('stroke', d => (d.votes/this.totalVotes) > 0.01 ? null : this.defineGradient(
+                        darken(partyColour(d.source.candidate.party_abbr), 1),
+                        darken(partyColour(d.target.candidate.party_abbr), 1)
+                    ))
                     .attr('stroke-width', 0.5)
-                    .attr('fill', d => partyColour(d.source.candidate.party_abbr))
-                    .attr('opacity', 0.8)
-                    .filter(d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
-                        .attr('opacity', 1)
+                    // .attr('fill', d => partyColour(d.source.candidate.party_abbr))
+                    .attr('fill', d => this.defineGradient(
+                        partyColour(d.source.candidate.party_abbr),
+                        partyColour(d.target.candidate.party_abbr))
+                    )
+                    .attr('opacity', 0.8);
 
     }
 }
