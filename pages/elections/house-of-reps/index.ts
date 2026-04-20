@@ -15,7 +15,7 @@ async function main() {
     const electorates_by_state = d3.group(results.electorates, d => d.state);
 
     selected_electorate
-        .on('change', (e: Event) => vis.update(
+        .on('change', (e: Event) => vis.updateData(
                                         results.electorates.find( d => d.name === (e.target as HTMLSelectElement)?.value )
                                     ))
         .selectAll('optgroup')

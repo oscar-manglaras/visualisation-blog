@@ -25,10 +25,11 @@ export interface Candidate {
 }
 
 export interface RoundResult {
-    candidate: Candidate | undefined;
+    candidate: Candidate;
     round: number;
     count: number;
     percentage: number;
+    change: number;
 }
 
 export async function fetch_data() {
@@ -59,11 +60,14 @@ export async function fetch_data() {
                 const round_results: RoundResult[] = [];
 
                 d.forEach((d, ballot_id) => {
+                    const candidate = candidates.find(c => c.ballot_id === ballot_id);
+                    if (!candidate) throw new Error(`Failed to find candidate for ballot id ${ballot_id}`)
                     round_results.push({
                         round: round,
-                        candidate: candidates.find(c => c.ballot_id === ballot_id),
+                        candidate: candidate,
                         count: parseInt(d.find(d => d.CalculationType === 'Preference Count')?.CalculationValue ?? ''),
                         percentage: parseFloat(d.find(d => d.CalculationType === 'Preference Percent')?.CalculationValue ?? ''),
+                        change: parseInt(d.find(d => d.CalculationType === 'Transfer Count')?.CalculationValue ?? ''),
                     })
                 })
 
