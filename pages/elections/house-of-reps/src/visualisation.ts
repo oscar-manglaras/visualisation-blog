@@ -37,7 +37,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private voteScale = d3.scaleLinear();
     private totalVotes = 0;
 
-    private gradients = new Map<string,string>();
+    private gradients = new Set<string>();
 
     constructor(container: HTMLElement) {
         super(container, {
@@ -282,14 +282,13 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private defineGradient(this: HousePreferenceFlowVisualisation, colour1: string, colour2: string): string | null {
         if (colour1 === colour2) return colour1;
 
-        const key = `${colour1}-${colour2}`.replaceAll(/[\(\)\#]/g, '_').replaceAll(' ', '.');
+        const key = `${colour1}-${colour2}`.replaceAll(' ', '_').replaceAll(/[\(\)\[\]]/g, '~');
 
-        if (this.gradients.has(key)) return `url(#${this.gradients.get(key)})`;
+        if (this.gradients.has(key)) return `url(#${key})`;
 
         const newGradient = d3.select(this.svg).select('defs')
             .append('linearGradient')
-            .attr('id', key)
-            // .attr('gradientUnits', 'userSpaceOnUse');
+            .attr('id', key);
 
         newGradient.append('stop')
             .attr('offset', '30%')
@@ -298,6 +297,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('offset', '70%')
             .attr('stop-color', colour2);
 
+        this.gradients.add(key);
         return `url(#${key})`;
     }
 
