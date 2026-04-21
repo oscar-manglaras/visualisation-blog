@@ -1,6 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 export interface VisualisationOptions {
+    background_colour?: string;
     w?: number|string;
     h?: number|string;
     max_w?: number|string;
@@ -13,6 +14,8 @@ export abstract class Visualisation<T> {
     readonly _container: HTMLElement;
     readonly svg: SVGSVGElement;
     readonly resize_observer: ResizeObserver;
+
+    background_colour: string|null = null;
 
     w: number = 0;
     h: number = 0;
@@ -38,10 +41,13 @@ export abstract class Visualisation<T> {
     }
 
     update_options(this: Visualisation<T>, options?: VisualisationOptions): void {
+        this.background_colour = options?.background_colour ?? null;
+
         d3.select(this._container)
             .style('width', options?.w ?? '')
             .style('height', options?.h ?? '')
-            .style('max-height', options?.max_h ?? '');
+            .style('max-height', options?.max_h ?? '')
+            .style('background-color', this.background_colour ?? '');
 
         d3.select(this.svg)
             .style('min-width', options?.min_w ?? '')
@@ -49,7 +55,8 @@ export abstract class Visualisation<T> {
             .style('max-width', options?.max_w ?? '')
             .style('max-height', options?.max_h ?? '')
             .style('width', '100%')
-            .style('height', '100%');
+            .style('height', '100%')
+            .style('background-color', this.background_colour ?? '');
     }
 
     abstract resize(this: Visualisation<T>): void;

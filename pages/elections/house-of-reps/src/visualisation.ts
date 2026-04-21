@@ -68,10 +68,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             min_w: '40rem', min_h: '20rem',
             max_h: '50rem',
             w: '80rem',
+            background_colour: 'floralwhite',
         });
 
         const svg = d3.select(this.svg);
-        svg.style('background-color', 'floralwhite')
 
         svg.append('defs');
         svg.append('g').classed('candidates', true);
