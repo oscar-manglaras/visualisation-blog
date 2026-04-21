@@ -19,7 +19,8 @@ interface Link {
     votes: number;
 }
 
-type LabelStore = {y: number, originalY: number, candidate: Candidate}[];
+type LabelStore = Map<Candidate,LabelY>;
+type LabelY = {y: number, originalY: number}
 
 interface LayoutOptions {
     order?: '2pp' | 'count';
@@ -45,11 +46,12 @@ function centerOut<T>(arr: T[]): T[] {
 
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
-        left: 180, right: 80,
+        left: 200, right: 140,
         top: 20, bottom: 20,
     };
 
-    private labelPadding = 13;
+    private labelSize = 12;
+    private labelPadding = 4;
     private bandWidth = 20;
 
     private candidatePlacementOrder: Candidate[] = [];
@@ -57,6 +59,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private roundScale = d3.scaleLinear();
     private voteScale = d3.scaleLinear();
     private totalVotes = 0;
+    private percentFormat = d3.format('.1%');
 
     private gradients = new Set<string>();
 
@@ -76,20 +79,19 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         svg.append('g').classed('candidates', true);
         svg.append('g').classed('links', true);
         svg.append('g').classed('nodes', true);
-        svg.append('g').classed('decorations', true);
+
+        const decorations = svg.append('g').classed('decorations', true);
+        decorations.append('line').classed('mid-point', true);
+        decorations.append('text').classed('mid-point', true)
+
+        const _2pp = decorations.append('g').classed('two-pp', true);
+        _2pp.append('text').classed('winner', true);
+        _2pp.append('text').classed('second', true);
     }
 
     updateData(this: HousePreferenceFlowVisualisation, data?: ElectorateResult, opts?: LayoutOptions) {
         d3.select(this.svg).select('defs').selectAll('linearGradient').remove();
         this.gradients.clear();
-
-        const decorations = d3.select(this.svg).select('g.decorations');
-        if (!data) {
-            decorations.selectChildren().remove();
-        } else {
-            decorations.append('line').classed('mid-point', true);
-            decorations.append('text').classed('mid-point', true);
-        }
 
         this.data = data;
         this.options = opts ?? {};
@@ -228,7 +230,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
                         return {
                             candidate: d,
-                            ratio: flowToFirst - flowToSecond,
+                            ratio: (flowToFirst - flowToSecond)/(flowToFirst+flowToSecond),
                         }
                     })
                     .sort((a,b) => b.ratio - a.ratio)
@@ -248,7 +250,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         this.draw();
     }
 
-    private calculateLabelY(this: HousePreferenceFlowVisualisation, candidate: Candidate, labelStore: LabelStore): number {
+    private calculateLabelY(this: HousePreferenceFlowVisualisation, candidate: Candidate, labelStore: LabelStore): LabelY {
+        if (labelStore.has(candidate))
+            return labelStore.get(candidate)!;
+
         const candidateFirstBand = this.nodes[0]?.get(candidate);
         const offset = candidateFirstBand?.offset ?? 0;
         const votes = candidateFirstBand?.votes ?? 0;
@@ -256,24 +261,27 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         let y = this.voteScale(offset + votes/2);
         const originalY = y;
 
+        const spacing = this.labelSize + this.labelPadding;
+
         // resolve collisions against already placed labels
-        for (const prev of labelStore) {
+        for (const [_, prev] of labelStore) {
             if (originalY < prev.originalY) {
                 const diff = prev.y - y;
-                if (diff < this.labelPadding){
-                    y -= (this.labelPadding - diff);
+                if (diff < spacing){
+                    y -= (spacing - diff);
                 }
             } else {
                 const diff = y - prev.y;
-                if (diff < this.labelPadding){
-                    y += (this.labelPadding - diff);
+                if (diff < spacing){
+                    y += (spacing - diff);
                 }
             }
         }
 
-        labelStore.push({y, originalY, candidate})
+        const store: LabelY = {y, originalY};
+        labelStore.set(candidate, store);
 
-        return y;
+        return store;
     }
 
     private sortLinks(this: HousePreferenceFlowVisualisation, links: Link[]): Link[] {
@@ -354,27 +362,39 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     }
 
     draw(this: HousePreferenceFlowVisualisation) {
-        const labelStore: LabelStore = [];
+        const labelStore: LabelStore = new Map();
         const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
 
-        d3.select(this.svg)
+        const candidateList = d3.select(this.svg)
             .select('g.candidates')
-            .attr('transform', `translate(${this.padding.left-5}, ${this.padding.top})`)
-            .selectAll('text')
-                .data(centerOut(actualOrder))
-                .join('text')
-                .attr('y', d => this.calculateLabelY(d, labelStore))
-                .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
-                .attr('dominant-baseline', 'middle')
-                .attr('text-anchor', 'end')
-                .attr('font-size', '0.6rem')
-                .attr('white-space', 'pre-wrap')
-                .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) );
+            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`);
 
+        candidateList.selectAll('text')
+            .data(centerOut(actualOrder))
+            .join('text')
+            .attr('x', -15)
+            .attr('y', d => this.calculateLabelY(d, labelStore).y)
+            .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
+            .attr('dominant-baseline', 'middle')
+            .attr('text-anchor', 'end')
+            .attr('font-size', this.labelSize)
+            .attr('white-space', 'pre-wrap')
+            .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) );
+
+        candidateList.selectAll('line')
+            .data(actualOrder)
+            .join('line')
+            .attr('x1', -13)
+            .attr('y1', d => this.calculateLabelY(d, labelStore).y)
+            .attr('x2', 0)
+            .attr('y2', d => this.calculateLabelY(d, labelStore).originalY)
+            .attr('stroke', 'black')
+            .attr('stroke-width', 1);
 
         const decorations = d3.select(this.svg)
             .select('g.decorations')
-            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`);
+            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`)
+            .attr('visibility', this.data ? 'visible' : 'hidden');
             
         decorations.select('line.mid-point')
             .attr('stroke', 'black')
@@ -389,6 +409,34 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('x', (this.w - this.padding.left - this.padding.right) + 20)
             .attr('y', this.voteScale(this.totalVotes/2))
             .attr('dominant-baseline', 'middle');
+
+        const first = this.nodes.at(-1)?.get(this.candidatePlacementOrder[0]!);
+        const second = this.nodes.at(-1)?.get(this.candidatePlacementOrder[1]!);
+
+        decorations.select('g.two-pp')
+            .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, ${this.padding.top})`)
+            .selectAll('text')
+            .data(first && second ? [first, second] : [])
+            .join('text')
+            .attr('x', (this.padding.right) / 2)
+            .attr('y', (_, i) => this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75)) - 3.5 * this.labelSize)
+            .attr('dominant-baseline', 'middle')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', this.labelSize)
+            .attr('white-space', 'pre-wrap')
+            .selectAll('tspan')
+                .data(d => [
+                    { text: `${d.candidate.surname},`, bold: true },
+                    { text: d.candidate.given_name, bold: true },
+                    { text: d.candidate.party_name, bold: false },
+                    { text: `${d.votes} votes`, bold: false },
+                    { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
+                ])
+                .join('tspan')
+                .attr('x', (this.padding.right) / 2)
+                .attr('dy', (_, i) => i === 0 ? 0 : this.labelSize+this.labelPadding)
+                .attr('font-weight', d => d.bold ? 'bold' : 'normal')
+                .text(d => d.text);
 
         d3.select(this.svg)
             .select('g.nodes')
