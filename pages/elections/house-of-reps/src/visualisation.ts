@@ -2,7 +2,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 import { Visualisation } from "../../../common/modules/visualisation.js";
 import type { Candidate, ElectorateResult } from "./data-processing.js";
-import { darken, partyColour } from "./colours.js";
+import { darken, labelColour, partyColour } from "./colours.js";
 
 interface Node {
     round: number;
@@ -455,6 +455,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .attr('stroke', 'black')
                         .attr('stroke-width', 0.5);
 
+                    g.append('text')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('text-anchor', 'middle');
+
                     return g;
                 })
                 .classed('candidate', true)
@@ -466,6 +470,14 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .select('rect')
                         .attr('height', this.voteScale(d.votes))
                         .attr('fill', partyColour(d.candidate.party_abbr));
+                    
+                    d3.select(n[i])
+                        .select('text')
+                        .attr('font-size', this.labelSize - 1)
+                        .attr('visibility', this.voteScale(d.votes) >= this.labelSize ? 'visible' : 'hidden')
+                        .attr('fill', labelColour(partyColour(d.candidate.party_abbr), 'antiquewhite'))
+                        .attr('y', this.voteScale(d.votes/2))
+                        .text(d3.format('d')((d.votes/this.totalVotes) * 100));
                 });
 
         d3.select(this.svg)

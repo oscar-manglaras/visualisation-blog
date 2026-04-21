@@ -29,3 +29,8 @@ export function lighten(colour: string, k: number): string {
     const hsl = d3.hsl(colour);
     return hsl.brighter(k).toString()
 }
+
+export function labelColour(colour: string, whiteColour?: string|null): string {
+    const hsl = d3.cubehelix(colour);
+    return hsl.l > 0.5 ? 'black' : whiteColour ?? 'white';
+}
