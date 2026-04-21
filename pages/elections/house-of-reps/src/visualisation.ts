@@ -47,7 +47,7 @@ function centerOut<T>(arr: T[]): T[] {
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
         left: 200, right: 140,
-        top: 20, bottom: 20,
+        top: 60, bottom: 20,
     };
 
     private labelSize = 12;
@@ -76,6 +76,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const svg = d3.select(this.svg);
 
         svg.append('defs');
+        svg.append('g').classed('title', true).append('text');
         svg.append('g').classed('candidates', true);
         svg.append('g').classed('links', true);
         svg.append('g').classed('nodes', true);
@@ -362,6 +363,15 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     }
 
     draw(this: HousePreferenceFlowVisualisation) {
+        d3.select(this.svg).select('g.title')
+            .select('text')
+            .text(`2025 Preference Flows for ${this.data?.name} (${this.data?.state})`)
+            .attr('x', this.w/2)
+            .attr('y', 15)
+            .attr('dominant-baseline', 'hanging')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '1.5rem');
+
         const labelStore: LabelStore = new Map();
         const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
 
