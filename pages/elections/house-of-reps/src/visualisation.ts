@@ -424,29 +424,32 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const second = this.nodes.at(-1)?.get(this.candidatePlacementOrder[1]!);
 
         decorations.select('g.two-pp')
-            .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, ${this.padding.top})`)
+            .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, 0)`)
             .selectAll('text')
-            .data(first && second ? [first, second] : [])
-            .join('text')
-            .attr('x', (this.padding.right) / 2)
-            .attr('y', (_, i) => this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75)) - 3.5 * this.labelSize)
-            .attr('dominant-baseline', 'middle')
-            .attr('text-anchor', 'middle')
-            .attr('font-size', this.labelSize)
-            .attr('white-space', 'pre-wrap')
-            .selectAll('tspan')
-                .data(d => [
-                    { text: `${d.candidate.surname},`, bold: true },
-                    { text: d.candidate.given_name, bold: true },
-                    { text: d.candidate.party_name, bold: false },
-                    { text: `${d.votes} votes`, bold: false },
-                    { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
-                ])
-                .join('tspan')
-                .attr('x', (this.padding.right) / 2)
-                .attr('dy', (_, i) => i === 0 ? 0 : this.labelSize+this.labelPadding)
-                .attr('font-weight', d => d.bold ? 'bold' : 'normal')
-                .text(d => d.text);
+                .data(first && second ? [first, second] : [])
+                .join('text')
+                .attr('transform', (_,i) => `translate(${this.padding.right / 2}, ${this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75))})`)
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
+                .attr('font-size', this.labelSize)
+                .selectAll('tspan')
+                    .data(d => [
+                        { text: `${d.candidate.surname},`, bold: true },
+                        { text: d.candidate.given_name, bold: true },
+                        { text: d.candidate.party_name, bold: false },
+                        { text: `${d.votes} votes`, bold: false },
+                        { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
+                    ])
+                    .join('tspan')
+                    .attr('x', 0)
+                    .attr("dy", (_, i, n) => {
+                        const lineHeight = this.labelSize + this.labelPadding;
+                        return i === 0
+                            ? (-(n.length - 1) / 2 * lineHeight)
+                            : lineHeight;
+                    })
+                    .attr('font-weight', d => d.bold ? 'bold' : 'normal')
+                    .text(d => d.text);
 
         d3.select(this.svg)
             .select('g.nodes')
