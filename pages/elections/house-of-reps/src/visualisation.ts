@@ -21,6 +21,28 @@ interface Link {
 
 type LabelStore = {y: number, originalY: number, candidate: Candidate}[];
 
+interface LayoutOptions {
+    order?: '2pp' | 'count';
+}
+
+function centerOut<T>(arr: T[]): T[] {
+    const result: T[] = [];
+    const n = arr.length;
+    const mid = Math.floor(n / 2);
+    if (!arr[mid]) return [];
+
+    result.push(arr[mid]);
+
+    for (let i = 1; i <= mid; i++) {
+        const above = arr[mid+i];
+        const below = arr[mid-i]
+        if (below) result.push(below); // below
+        if (above) result.push(above); // above
+    }
+
+    return result;
+}
+
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
         left: 80, right: 80,
@@ -31,13 +53,15 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private namePadding = 100;
     private bandWidth = 20;
 
-    private candidateOrder: Candidate[] = [];
+    private candidatePlacementOrder: Candidate[] = [];
     private nodes: Map<Candidate,Node>[] = [];
     private roundScale = d3.scaleLinear();
     private voteScale = d3.scaleLinear();
     private totalVotes = 0;
 
     private gradients = new Set<string>();
+
+    private options: LayoutOptions = {};
 
     constructor(container: HTMLElement) {
         super(container, {
@@ -55,12 +79,13 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         svg.append('g').classed('nodes', true);
     }
 
-    updateData(this: HousePreferenceFlowVisualisation, data?: ElectorateResult) {
+    updateData(this: HousePreferenceFlowVisualisation, data?: ElectorateResult, opts?: LayoutOptions) {
         d3.select(this.svg).select('defs').selectAll('linearGradient').remove();
         this.gradients.clear();
 
         this.data = data;
-        this.candidateOrder = this.calculateCandidateOrder();
+        this.options = opts ?? {};
+        this.candidatePlacementOrder = this.calculateCandidateOrder();
         // this.candidates = data?.candidates ?? [];
 
         // const roundNodes: Map<Candidate,Node>[] = [];
@@ -167,25 +192,44 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         return true;
     }
 
+    /** Returns a new array containing the given nodes in the order they should be displayed.
+     * @param round The round number (zero-based).
+     * @returns
+     */
     private sortCandidates(this: HousePreferenceFlowVisualisation, nodes: Node[]): Node[] {
-        const newNodes: Node[] = [];
+        switch (this.options.order) {
+            // orders the candidates in each round based on theur vote count
+            case 'count':
+                return nodes.toSorted((a,b) => b.votes - a.votes);
 
-        const order = this.candidateOrder;
+            // orders the candidates against a 2pp axis
+            default:
+            case '2pp':
+                const newNodes: Node[] = [];
+                const order = this.candidatePlacementOrder;
 
-        this.doNode(nodes, d => d.candidate === order[0], d => newNodes.unshift(d));
-        this.doNode(nodes, d => d.candidate === order[1], d => newNodes.push(d));
+                this.doNode(nodes, d => d.candidate === order[0], d => newNodes.unshift(d));
+                this.doNode(nodes, d => d.candidate === order[1], d => newNodes.push(d));
 
-        for (let  i = 2; i < order.length; i++) {
-            const candidate = order[i];
-            const middle = (newNodes.length-1)/2;
+                const sortedEliminated = order.toSpliced(0, 2)
+                    .map((d, i) => {
+                        const roundEliminated = (order.length - (i + 2) - 1);
+                        const finalPreferenceFlows = this.nodes[roundEliminated]?.get(d)?.transfers ?? [];
+                        const flowToFirst = finalPreferenceFlows.find(d => d.target.candidate === order[0])?.votes ?? 0;
+                        const flowToSecond = finalPreferenceFlows.find(d => d.target.candidate === order[1])?.votes ?? 0;
 
-            if (i % 2 == 0)
-                this.doNode(nodes, d => d.candidate === candidate, d => newNodes.splice(Math.ceil(middle), 0, d));
-            else
-                this.doNode(nodes, d => d.candidate === candidate, d => newNodes.splice(Math.floor(middle), 0, d));
+                        return {
+                            candidate: d,
+                            ratio: flowToFirst - flowToSecond,
+                        }
+                    })
+                    .sort((a,b) => b.ratio - a.ratio)
+                    .map(d => nodes.find(n => n.candidate === d.candidate))
+                    .filter(d => d != undefined);
+
+                newNodes.splice(1, 0, ...sortedEliminated);
+                return newNodes;
         }
-
-        return newNodes;
     }
 
     resize(this: HousePreferenceFlowVisualisation): void {
@@ -197,7 +241,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     }
 
     private calculateLabelY(this: HousePreferenceFlowVisualisation, candidate: Candidate, labelStore: LabelStore): number {
-        const candidateFirstBand = [...this.nodes[0]?.values()??[]].find(c => c.candidate === candidate);
+        const candidateFirstBand = this.nodes[0]?.get(candidate);
         const offset = candidateFirstBand?.offset ?? 0;
         const votes = candidateFirstBand?.votes ?? 0;
 
@@ -250,22 +294,22 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 }
             }
 
-        // If the offset for the same candidate has reduced, then a candidate higher on the screen
-        // has been eliminated, so shuffle around the offsets.
-        } else if (source.offset > target.offset) {
+        } else {
             this.doNode([...this.nodes[source.round]?.values()??[]], d => d.transfers.length > 1, n => {
-                const preferenceVotes = n.transfers.find(d => d.target === target)?.votes ?? 0;
-                targetOffset += preferenceVotes;
+                if (n.offset < source.offset) {
+                    const preferenceVotes = n.transfers.find(d => d.target === target)?.votes ?? 0;
+                    targetOffset += preferenceVotes;
+                }
             });
         }
 
         const sourceX = this.roundScale(link.source.round) + this.bandWidth/2;
         const targetX = this.roundScale(link.target.round) - this.bandWidth/2;
 
-        const sourceYTop = this.voteScale(sourceOffset);
-        const sourceYBottom = this.voteScale(sourceOffset + votes);
-        const targetYTop = this.voteScale(targetOffset);
-        const targetYBottom = this.voteScale(targetOffset + votes);
+        const sourceYTop = this.voteScale(sourceOffset - 0.5);
+        const sourceYBottom = this.voteScale(sourceOffset + votes + 0.5);
+        const targetYTop = this.voteScale(targetOffset - 0.5);
+        const targetYBottom = this.voteScale(targetOffset + votes + 0.5);
 
         path.moveTo(sourceX, sourceYTop);
 
@@ -303,12 +347,13 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     draw(this: HousePreferenceFlowVisualisation) {
         const labelStore: LabelStore = [];
+        const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
 
         d3.select(this.svg)
             .select('g.candidates')
             .attr('transform', `translate(${this.padding.left+this.namePadding-5}, ${this.padding.top})`)
             .selectAll('text')
-                .data(this.candidateOrder.toReversed()/*, (d) => `${this.data?.name}-${(d as Candidate).ballot_id}`*/)
+                .data(centerOut(actualOrder))
                 .join('text')
                 .attr('y', d => this.calculateLabelY(d, labelStore))
                 .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
