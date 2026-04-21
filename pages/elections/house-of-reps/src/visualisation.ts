@@ -51,7 +51,6 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     private labelPadding = 13;
     private bandWidth = 20;
-    private centerGap = 2;
 
     private candidatePlacementOrder: Candidate[] = [];
     private nodes: Map<Candidate,Node>[] = [];
@@ -77,12 +76,20 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         svg.append('g').classed('candidates', true);
         svg.append('g').classed('links', true);
         svg.append('g').classed('nodes', true);
-        svg.append('g').classed('grid', true);
+        svg.append('g').classed('decorations', true);
     }
 
     updateData(this: HousePreferenceFlowVisualisation, data?: ElectorateResult, opts?: LayoutOptions) {
         d3.select(this.svg).select('defs').selectAll('linearGradient').remove();
         this.gradients.clear();
+
+        const decorations = d3.select(this.svg).select('g.decorations');
+        if (!data) {
+            decorations.selectChildren().remove();
+        } else {
+            decorations.append('line').classed('mid-point', true);
+            decorations.append('text').classed('mid-point', true);
+        }
 
         this.data = data;
         this.options = opts ?? {};
@@ -364,22 +371,24 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('white-space', 'pre-wrap')
                 .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) );
 
-        if (!this.data) {
-            d3.select(this.svg).select('g.grid').selectChildren().remove();
-        } else {
-            d3.select(this.svg)
-                .select('g.grid')
-                .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`)
-                .selectAll('line')
-                    .data([0])
-                    .join('line')
-                    .attr('stroke', 'black')
-                    .attr('x1', 0)
-                    .attr('y1', this.voteScale(this.totalVotes/2))
-                    .attr('x2', this.w - this.padding.left - this.padding.right + 10)
-                    .attr('y2', this.voteScale(this.totalVotes/2))
-                    .attr('stroke-width', this.centerGap);
-        }
+
+        const decorations = d3.select(this.svg)
+            .select('g.decorations')
+            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`);
+            
+        decorations.select('line.mid-point')
+            .attr('stroke', 'black')
+            .attr('x1', 0)
+            .attr('y1', this.voteScale(this.totalVotes/2))
+            .attr('x2', (this.w - this.padding.left - this.padding.right) + 10)
+            .attr('y2', this.voteScale(this.totalVotes/2))
+            .attr('stroke-width', 1.5);
+
+        decorations.select('text.mid-point')
+            .text('50%')
+            .attr('x', (this.w - this.padding.left - this.padding.right) + 20)
+            .attr('y', this.voteScale(this.totalVotes/2))
+            .attr('dominant-baseline', 'middle');
 
         d3.select(this.svg)
             .select('g.nodes')
