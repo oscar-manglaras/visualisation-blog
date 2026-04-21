@@ -45,12 +45,11 @@ function centerOut<T>(arr: T[]): T[] {
 
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
-        left: 80, right: 80,
+        left: 180, right: 80,
         top: 20, bottom: 20,
     };
 
     private labelPadding = 13;
-    private namePadding = 100;
     private bandWidth = 20;
 
     private candidatePlacementOrder: Candidate[] = [];
@@ -235,7 +234,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     resize(this: HousePreferenceFlowVisualisation): void {
         console.log('drawing!!!');
 
-        this.roundScale.range([0, this.w-this.padding.right-this.padding.left - this.namePadding]);
+        this.roundScale.range([0, this.w-this.padding.right-this.padding.left]);
         this.voteScale.range([0, this.h-this.padding.bottom-this.padding.top]);
         this.draw();
     }
@@ -351,7 +350,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         d3.select(this.svg)
             .select('g.candidates')
-            .attr('transform', `translate(${this.padding.left+this.namePadding-5}, ${this.padding.top})`)
+            .attr('transform', `translate(${this.padding.left-5}, ${this.padding.top})`)
             .selectAll('text')
                 .data(centerOut(actualOrder))
                 .join('text')
@@ -369,7 +368,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .data(this.nodes)
                 .join('g')
                 .classed('round', true)
-                .attr('transform', (_d,i) => `translate(${this.padding.left+this.namePadding+10+this.roundScale(i)},${this.padding.top})`)
+                .attr('transform', (_d,i) => `translate(${this.padding.left+(this.bandWidth/2)+this.roundScale(i)},${this.padding.top})`)
             .selectAll('g.candidate')
                 .data(d => d.values())
                 .join(enter => {
@@ -399,7 +398,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     .data(this.nodes)
                     .join('g')
                     .classed('round', true)
-                    .attr('transform', `translate(${this.padding.left+this.namePadding+10},${this.padding.top})`)
+                    .attr('transform', `translate(${this.padding.left+(this.bandWidth/2)},${this.padding.top})`)
                 .selectAll('path.link')
                     .data(d => [...d.values()].flatMap(d => [...d.transfers.values()]))
                     .join('path')
