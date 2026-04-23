@@ -59,6 +59,11 @@ header {
     margin-bottom: auto;
 }
 
+h1 {
+    margin-top: 0.7rem;
+    margin-bottom: 0.7rem;
+}
+
 /* Blog post */
 main {
     flex: 1;
