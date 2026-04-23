@@ -425,11 +425,11 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             
         decorations.select('line.mid-point')
             .attr('stroke', 'black')
-            .attr('x1', 0)
+            .attr('x1', -7)
             .attr('y1', this.voteScale(this.totalVotes/2))
             .attr('x2', (this.w - this.padding.left - this.padding.right) + 10)
             .attr('y2', this.voteScale(this.totalVotes/2))
-            .attr('stroke-width', 1.5);
+            .attr('stroke-width', 2);
 
         decorations.select('text.mid-point')
             .text('50%')
