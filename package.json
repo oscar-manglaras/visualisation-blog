@@ -19,8 +19,11 @@
   },
   "homepage": "https://github.com/oscar-manglaras/visualisation-blog#readme",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/d3": "^7.4.3",
-    "eslint": "^10.2.0",
-    "typescript": "^6.0.2"
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.59.0"
   }
 }

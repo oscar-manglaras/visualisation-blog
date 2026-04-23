@@ -7,7 +7,9 @@
             "request": "launch",
             "reAttach": true,
             "file": "${workspaceFolder}/index.html",
-            "pathMappingIndex": "index.html"
+            "pathMappingIndex": "index.html",
+            "preLaunchTask": "tsc build",
+            "postDebugTask": "clean"
         }
     ]
 }
