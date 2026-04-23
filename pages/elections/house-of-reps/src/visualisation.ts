@@ -324,19 +324,35 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const sourceX = this.roundScale(link.source.round) + this.bandWidth/2;
         const targetX = this.roundScale(link.target.round) - this.bandWidth/2;
 
-        const sourceYTop = this.voteScale(sourceOffset - 0.5);
-        const sourceYBottom = this.voteScale(sourceOffset + votes + 0.5);
-        const targetYTop = this.voteScale(targetOffset - 0.5);
-        const targetYBottom = this.voteScale(targetOffset + votes + 0.5);
+        const sourceY = this.voteScale(sourceOffset + votes/2);
+        const targetY = this.voteScale(targetOffset + votes/2);
 
-        path.moveTo(sourceX, sourceYTop);
+        const midX = (sourceX + targetX) / 2;
 
-        const ctrl = (sourceX + targetX) / 2;
-        path.bezierCurveTo(ctrl, sourceYTop, ctrl, targetYTop, targetX, targetYTop);
+        // Our gradients require the path to have a non-zero height,
+        // so when the height would be identical, lets add a little 'wiggle' to the bezier curve.
+        // This value should hopefully be small enough to be unnoticeable.
+        const wiggle = (sourceY === targetY && source.candidate.ballot_id !== target.candidate.ballot_id)
+                        ? 0.0001
+                        : 0;
 
-        path.lineTo(targetX, targetYBottom);
-        path.bezierCurveTo(ctrl, targetYBottom, ctrl, sourceYBottom, sourceX, sourceYBottom);
-        path.closePath()
+        // We need to add a horizontal hook to the start of the line to ensure the
+        // start of the line is attached to the target node.
+        path.moveTo(sourceX - this.bandWidth/2, sourceY);
+        path.lineTo(sourceX, sourceY);
+
+        if (sourceY === targetY)
+            path.bezierCurveTo(midX, sourceY + wiggle, midX, targetY - wiggle, targetX, targetY);
+
+        // If the line is too thick relative to the distance between nodes, then a bezier curve
+        // ends up rendering incorrectly. When this happens, draw a straight line instead.
+        else if ((targetX - sourceX) / this.voteScale(votes) < 2)
+            path.lineTo(targetX, targetY);
+        else
+            path.bezierCurveTo(midX, sourceY, midX, targetY, targetX, targetY);
+
+        // We need to add a horizontal hook to the line to ensure the end of the line is attached to the target node.
+        path.lineTo(targetX + this.bandWidth/2, targetY);
 
         return path.toString();
     }
@@ -494,33 +510,50 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .text(d3.format('d')((d.votes/this.totalVotes) * 100));
                 });
 
+        const roundWidth = this.roundScale(1);
+
         d3.select(this.svg)
-                .select('g.links')
-                .selectAll('g.round')
-                    .data(this.nodes)
-                    .join('g')
-                    .classed('round', true)
-                    .attr('transform', `translate(${this.padding.left+(this.bandWidth/2)},${this.padding.top})`)
-                .selectAll('path.link')
-                    .data(d => [...d.values()].flatMap(d => [...d.transfers.values()]))
-                    .join('path')
-                    .sort((a,b) => a.source.transfers.length - b.source.transfers.length)
-                    .classed('link', true)
-                    .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
-                    .attr('d', d => this.drawSankeyCurve(d))
-                    .attr('stroke', d => (d.votes/this.totalVotes) > 0.01 ?
-                        null
-                        : this.defineGradient(
-                            darken(partyColour(d.source.candidate.party_abbr), 1),
-                            darken(partyColour(d.target.candidate.party_abbr), 1)
-                        ))
-                    .attr('stroke-width', 0.5)
-                    // .attr('fill', d => partyColour(d.source.candidate.party_abbr))
-                    .attr('fill', d => this.defineGradient(
+            .select('defs')
+            .selectAll('clipPath')
+                .data(d3.range(this.nodes.length-1))
+                .join('clipPath')
+                .attr('id', (_,i) => `round_${i}-${i+1}_area`)
+                .selectAll('rect')
+                .data((_d,i) => [i])
+                .join('rect')
+                .attr('x', d => this.roundScale(d))
+                .attr('y', 0)
+                .attr('width', roundWidth)
+                .attr('height', this.voteScale.range()[1]??0);
+
+        d3.select(this.svg)
+            .select('g.links')
+            .selectAll('g.round')
+                .data(this.nodes)
+                .join('g')
+                .classed('round', true)
+                .attr('transform', `translate(${this.padding.left+(this.bandWidth/2)},${this.padding.top})`)
+            .selectAll('path.link')
+                .data(d => [...d.values()].flatMap(d => [...d.transfers.values()]))
+                .join('path')
+                .sort((a,b) => a.source.transfers.length - b.source.transfers.length)
+                .classed('link', true)
+                .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
+                .attr('d', d => this.drawSankeyCurve(d))
+                .attr('stroke', d => (d.votes/this.totalVotes) > 0.005 ?
+                    this.defineGradient(
                         partyColour(d.source.candidate.party_abbr),
-                        partyColour(d.target.candidate.party_abbr))
+                        partyColour(d.target.candidate.party_abbr)
                     )
-                    .attr('opacity', 0.8);
+                    : this.defineGradient(
+                        darken(partyColour(d.source.candidate.party_abbr), 1),
+                        darken(partyColour(d.target.candidate.party_abbr), 1)
+                    ))
+                .attr('stroke-width', d => this.voteScale(d.votes))
+                .attr('fill', 'none')
+                .attr('opacity', 0.8)
+                .attr('clip-path', d => `url(#round_${d.source.round}-${d.target.round}_area)`);
+
 
     }
 }
