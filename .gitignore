@@ -2,4 +2,3 @@ node_modules
 tsconfig.tsbuildinfo
 *.js
 *.js.map
-!eslint.config.js
