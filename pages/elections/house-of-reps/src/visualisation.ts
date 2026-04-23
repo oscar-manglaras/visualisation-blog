@@ -215,7 +215,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
             // orders the candidates against a 2pp axis
             default:
-            case '2pp':
+            case '2pp':{
                 const newNodes: Node[] = [];
                 const order = this.candidatePlacementOrder;
 
@@ -240,6 +240,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
                 newNodes.splice(1, 0, ...sortedEliminated);
                 return newNodes;
+            }
         }
     }
 
@@ -294,7 +295,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const source = link.source;
         const target = link.target;
 
-        let votes: number = link.votes;
+        const votes: number = link.votes;
         let sourceOffset: number = link.source.offset;
         let targetOffset: number = link.target.offset;
 
@@ -343,7 +344,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private defineGradient(this: HousePreferenceFlowVisualisation, colour1: string, colour2: string): string | null {
         if (colour1 === colour2) return colour1;
 
-        const key = `${colour1}-${colour2}`.replaceAll(' ', '_').replaceAll(/[\(\)\[\]]/g, '~');
+        const key = `${colour1}-${colour2}`.replaceAll(' ', '_').replaceAll(/[()[\]]/g, '~');
 
         if (this.gradients.has(key)) return `url(#${key})`;
 
