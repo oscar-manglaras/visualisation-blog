@@ -154,10 +154,13 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         });
 
         // sort the candidates in each round and calculate vote offsets
-        const rootNodes = this.nodes.at(0);
-        if (!rootNodes) throw new Error();
-        this.totalVotes = d3.reduce(rootNodes, (prev, [_,node]) => prev + node.votes, 0);
-        console.log('voteTotal', this.totalVotes)
+        if (data) {
+            const rootNodes = this.nodes.at(0);
+            if (!rootNodes) throw new Error();
+            this.totalVotes = d3.reduce(rootNodes, (prev, [_,node]) => prev + node.votes, 0);
+        } else {
+            this.totalVotes = 0;
+        }
 
         this.voteScale.domain([0,this.totalVotes]);
 
@@ -245,8 +248,6 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     }
 
     resize(this: HousePreferenceFlowVisualisation): void {
-        console.log('drawing!!!');
-
         this.roundScale.range([0, this.w-this.padding.right-this.padding.left - this.bandWidth]);
         this.voteScale.range([0, this.h-this.padding.bottom-this.padding.top]);
         this.draw();
