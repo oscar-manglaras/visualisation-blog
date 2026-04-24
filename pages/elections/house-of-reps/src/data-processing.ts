@@ -1,4 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+import { fetchCompressedFile } from "../../../common/modules/compression.js";
 
 type State = 'ACT'|'NSW'|'NT'|'QLD'|'SA'|'TAS'|'VIC'|'WA';
 
@@ -33,7 +34,11 @@ export interface RoundResult {
 }
 
 export async function fetch_data() {
-    let text = await d3.text('./data/2025-federal-election.csv');
+    let text = await fetchCompressedFile('./data/2025-federal-election.csv.gz');
+    if (!text) {
+        console.error('failed to fetch or decompress file');
+        return;
+    }
     
     // remove the extra header row
     text = text.replace(/^[^\r\n]+\r?\n/, '');

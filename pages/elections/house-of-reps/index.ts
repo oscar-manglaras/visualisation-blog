@@ -12,10 +12,13 @@ async function main() {
     const vis = new HousePreferenceFlowVisualisation(figure);
 
     const results = await fetch_data();
+    if (!results) return;
+
     const electorates_by_state = d3.group(results.electorates, d => d.state);
 
     function updateVis(electorate: string): void {
-        vis.updateData( results.electorates.find( d => d.name === electorate ), {order: '2pp'} );
+        if (results)
+            vis.updateData( results.electorates.find( d => d.name === electorate ), {order: '2pp'} );
     }
 
     selected_electorate
