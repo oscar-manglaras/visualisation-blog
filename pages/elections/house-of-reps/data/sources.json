@@ -1,0 +1,11 @@
+{
+    "federal_elections": {
+        "2025": "./data/2025-federal-election.csv.gz",
+        "2022": "./data/2022-federal-election.csv.gz",
+        "2019": "./data/2019-federal-election.csv.gz",
+        "2016": "./data/2016-federal-election.csv.gz",
+        "2013": "./data/2013-federal-election.csv.gz",
+        "2010": "./data/2010-federal-election.csv.gz",
+        "2007": "./data/2007-federal-election.csv.gz"
+    }
+}

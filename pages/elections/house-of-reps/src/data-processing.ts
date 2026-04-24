@@ -4,11 +4,12 @@ import { fetchCompressedFile } from "../../../common/modules/compression.js";
 type State = 'ACT'|'NSW'|'NT'|'QLD'|'SA'|'TAS'|'VIC'|'WA';
 
 export interface ElectionResults {
-    year: number;
+    year: string;
     electorates: ElectorateResult[];
 }
 
 export interface ElectorateResult {
+    year: string;
     state: State;
     name: string;
     results: RoundResult[][];
@@ -33,8 +34,8 @@ export interface RoundResult {
     change: number;
 }
 
-export async function fetch_data() {
-    let text = await fetchCompressedFile('./data/2025-federal-election.csv.gz');
+export async function fetch_data(source: string, year: string) {
+    let text = await fetchCompressedFile(source);
     if (!text) {
         console.error('failed to fetch or decompress file');
         return;
@@ -46,7 +47,7 @@ export async function fetch_data() {
     const electorates = d3.flatGroup(d3.csvParse(text), d => d.StateAb, d => d.DivisionNm);
 
     const election_results: ElectionResults = {
-        year: 2025,
+        year: year,
         electorates: electorates.map((d): ElectorateResult => {
             const candidates = d3.flatGroup(d[2], d => d.BallotPosition)
                 .map(d => ({
@@ -80,6 +81,7 @@ export async function fetch_data() {
             });
 
             return {
+                year: year,
                 state: d[0] as State,
                 name: d[1] ?? '',
                 candidates: candidates,

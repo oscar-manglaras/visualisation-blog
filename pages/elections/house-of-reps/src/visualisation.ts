@@ -383,7 +383,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         d3.select(this.svg).select('g.title')
             .attr('visibility', this.data ? 'visible' : 'hidden')
             .select('text')
-            .text(`2025 Preference Flows for ${this.data?.name} (${this.data?.state})`)
+            .text(`${this.data?.year} Preference Flows for ${this.data?.name} (${this.data?.state})`)
             .attr('x', this.w/2)
             .attr('y', 15)
             .attr('dominant-baseline', 'hanging')
