@@ -1,1 +1,3 @@
-Data sourced from https://results.aec.gov.au/31496/Website/HouseDownloadsMenu-31496-Csv.htm
+Data sourced from the Australian Electoral Comission [tally room archive](https://results.aec.gov.au/).
+
+

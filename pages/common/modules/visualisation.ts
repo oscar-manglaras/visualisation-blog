@@ -40,6 +40,45 @@ export abstract class Visualisation<T> {
         this.resize_observer.observe(this.svg);
     }
 
+    toExportString(this: Visualisation<T>): string {
+        const svg = d3.select(this.svg)
+            .clone(true)
+            .attr('xmlns', 'http://www.w3.org/2000/svg')
+            .style('font-family', 'Atkinson Hyperligible Next,Atkinson Hyperlegible,Gill Sans,Sans-Serif')
+            .style('background-color', 'white');
+
+        const string = svg.node()!.outerHTML;
+        svg.remove();
+
+        return string;
+    }
+
+    toExportBlob(this: Visualisation<T>): Blob {
+        return new Blob([this.toExportString()], { type: 'image/svg+xml' });
+    }
+
+    download(this: Visualisation<T>, name?: string): void {
+        const url = URL.createObjectURL(this.toExportBlob());
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name ?? document.title;
+        
+        // 4. Temporarily add to DOM and trigger download
+        document.body.appendChild(a);
+        a.style.display = 'none';
+        a.click();
+
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    print(this: Visualisation<T>): void {
+        const url = URL.createObjectURL(this.toExportBlob());
+        window.open(url, '_blank')?.print();
+        window.URL.revokeObjectURL(url);
+    }
+
     update_options(this: Visualisation<T>, options?: VisualisationOptions): void {
         this.background_colour = options?.background_colour ?? null;
 

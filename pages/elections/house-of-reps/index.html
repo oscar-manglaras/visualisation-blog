@@ -2,7 +2,7 @@
 <html lang="en-au">
 
 <head>
-    <title>Oscar's Visualisation Blog</title>
+    <title>House of Representatives Preference Flows</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="../../common/css/common.css">
@@ -23,16 +23,21 @@
                 The final two candidates are always placed on the top and bottom of the graph, respectively.
             </p>
             <p>
-                Voting data is sourced from the <a
-                    href="https://results.aec.gov.au/31496/Website/HouseDownloadsMenu-31496-Csv.htm">Australian
-                    Electoral Commission</a>.
+                Voting data is sourced from the <a href="https://results.aec.gov.au/">Australian Electoral Commission</a>.
             </p>
-            <div class="controls">
-                <select name="electorate" id="electorate">
-                    <option value="" disabled selected hidden>Select electorate</option>
-                </select>
+            <div class="controls" style="display: flex; flex-direction: row; justify-content: space-between;">
+                <div class="options">
+                    <select name="election" id="election"></select>
+                    <select name="electorate" id="electorate">
+                        <option value="" disabled selected hidden>Select electorate</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="print-svg">Print</button>
+                    <button id="download-svg">Download</button>
+                </div>
             </div>
-            <figure id="visualisation" style="flex-grow: 1;"></figure>
+            <figure id="visualisation" style="flex-grow: 1; width: 80rem; background-color: floralwhite;"></figure>
         </main>
 
         <footer>
