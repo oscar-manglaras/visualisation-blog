@@ -44,6 +44,10 @@ function centerOut<T>(arr: T[]): T[] {
     return result;
 }
 
+function candidateName(candidate: Candidate): string {
+    return `${candidate.given_name} ${candidate.surname}`;
+}
+
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
         left: 200, right: 140,
@@ -400,15 +404,32 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         candidateList.selectAll('text')
             .data(centerOut(actualOrder))
-            .join('text')
+            .join(enter => {
+                const text = enter.append('text');
+                text.append('title');
+                text.append('tspan');
+                return text;
+            })
             .attr('x', -15)
             .attr('y', d => this.calculateLabelY(d, labelStore).y)
-            .text(d =>`${d.surname}, ${d.given_name} (${d.party_abbr})`)
             .attr('dominant-baseline', 'middle')
             .attr('text-anchor', 'end')
             .attr('font-size', this.labelSize)
             .attr('white-space', 'pre-wrap')
-            .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) );
+            .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) )
+            .each((d,i,n) => {
+                d3.select(n[i]!)
+                    .select('title')
+                    .text(
+                        `name:\t${candidateName(d)}` + (d.incumbent ? ` (INCUMBENT)\n` : '\n') +
+                        `party:\t${d.party_name} (${d.party_abbr})\n` +
+                        `1st preference votes:\t ${this.nodes[0]?.get(d)?.votes}`
+                    );
+
+                d3.select(n[i]!)
+                    .select('tspan')
+                    .text(`${candidateName(d)} (${d.party_abbr})`)
+            });
 
         candidateList.selectAll('line')
             .data(actualOrder)
@@ -453,8 +474,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('font-size', this.labelSize)
                 .selectAll('tspan')
                     .data(d => [
-                        { text: `${d.candidate.surname},`, bold: true },
-                        { text: d.candidate.given_name, bold: true },
+                        { text: `${d.candidate.given_name}`, bold: true },
+                        { text: d.candidate.surname, bold: true },
                         { text: d.candidate.party_name, bold: false },
                         { text: `${d.votes} votes`, bold: false },
                         { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
