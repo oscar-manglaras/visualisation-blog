@@ -386,10 +386,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .select('text')
             .text(`${this.data?.year} Preference Flows for ${this.data?.name} (${this.data?.state})`)
             .attr('x', this.w/2)
-            .attr('y', 15)
+            .attr('y', 13)
             .attr('dominant-baseline', 'hanging')
             .attr('text-anchor', 'middle')
-            .attr('font-size', '1.5rem');
+            .attr('font-size', 2*this.labelSize);
 
         const labelStore: LabelStore = new Map();
         const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
