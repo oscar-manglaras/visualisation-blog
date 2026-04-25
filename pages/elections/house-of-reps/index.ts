@@ -19,8 +19,11 @@ const vis = new HousePreferenceFlowVisualisation(figure);
 d3.select(document.querySelector('button#download-svg') as SVGSVGElement)
     .on('click', () => vis.download(`HoR_Preference_Flows-${vis.data?.name}-${vis.data?.year}`));
 
-d3.select(document.querySelector('button#print-svg') as SVGSVGElement)
-    .on('click', () => vis.print());
+d3.select(document.querySelector('button#download-png') as SVGSVGElement)
+    .on('click', () => vis.download(`HoR_Preference_Flows-${vis.data?.name}-${vis.data?.year}`, 'png'));
+
+d3.select(document.querySelector('button#download-png-high') as SVGSVGElement)
+    .on('click', () => vis.download(`HoR_Preference_Flows-${vis.data?.name}-${vis.data?.year}`, 'png', 5000));
 
 function getQueryParams() {
     const params = new URLSearchParams(window.location.search);

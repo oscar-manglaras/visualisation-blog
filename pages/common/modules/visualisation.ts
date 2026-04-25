@@ -40,31 +40,77 @@ export abstract class Visualisation<T> {
         this.resize_observer.observe(this.svg);
     }
 
-    toExportString(this: Visualisation<T>): string {
+    toXMLString(this: Visualisation<T>): string {
         const svg = d3.select(this.svg)
             .clone(true)
-            .attr('xmlns', 'http://www.w3.org/2000/svg')
+            .attr('viewBox', `0 0 ${this.w} ${this.h}`)
+            .attr('width', this.w)
+            .attr('height', this.h)
             .style('font-family', 'Atkinson Hyperligible Next,Atkinson Hyperlegible,Gill Sans,Sans-Serif')
             .style('background-color', 'white');
 
-        const string = svg.node()!.outerHTML;
-        svg.remove();
+        const node = svg.node()!;
+        const xmlSerializer = new XMLSerializer();
 
+        const string = xmlSerializer.serializeToString(node);
+
+        svg.remove();
         return string;
     }
 
-    toExportBlob(this: Visualisation<T>): Blob {
-        return new Blob([this.toExportString()], { type: 'image/svg+xml' });
+    toBlob(this: Visualisation<T>): Blob {
+        return new Blob([this.toXMLString()], { type: 'image/svg+xml' });
     }
 
-    download(this: Visualisation<T>, name?: string): void {
-        const url = URL.createObjectURL(this.toExportBlob());
+    private async loadImage(this: Visualisation<T>): Promise<HTMLImageElement> {
+        const svgURL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(this.toXMLString())}`;
+
+        const img = new Image(this.w, this.h);
+        img.src = svgURL;
+        return new Promise((resolve, reject) => {
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+        })
+    }
+
+    async toImage(this: Visualisation<T>, format: 'png'|'jpeg', scaling?: number): Promise<Blob> {
+        const img = await this.loadImage();
+        scaling = scaling ?? 1;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * scaling;
+        canvas.height = img.naturalHeight * scaling;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        let cb: (blob: Blob) => void, err: () => void;
+        const promise = new Promise<Blob>((resolve, reject) => {
+            cb = resolve;
+            err = reject;
+        });
+
+        canvas.toBlob((blob) => blob ? cb(blob) : err(), `image/${format}`, 1);
+        return promise;
+    }
+
+    async download(this: Visualisation<T>, name?: string, format?: 'svg'|'png'|'jpeg', minYRes?: number): Promise<void> {
+        format = format ?? 'svg';
+
+        let blob: Blob;
+        if (format === 'svg') {
+            blob = this.toBlob();
+        } else {
+            const scaling = Math.max(1, (minYRes ?? 2000) / this.h);
+            blob = await this.toImage(format, scaling);
+        }
+
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
 
         const a = document.createElement('a');
         a.href = url;
         a.download = name ?? document.title;
-        
-        // 4. Temporarily add to DOM and trigger download
+
         document.body.appendChild(a);
         a.style.display = 'none';
         a.click();
@@ -74,9 +120,15 @@ export abstract class Visualisation<T> {
     }
 
     print(this: Visualisation<T>): void {
-        const url = URL.createObjectURL(this.toExportBlob());
-        window.open(url, '_blank')?.print();
-        window.URL.revokeObjectURL(url);
+        const url = URL.createObjectURL(this.toBlob());
+        const newWindow = window.open(url, '_blank');
+        if (newWindow)
+            newWindow.onload = () => {
+                newWindow.print();
+                window.URL.revokeObjectURL(url);
+            };
+        else
+            window.URL.revokeObjectURL(url);
     }
 
     update_options(this: Visualisation<T>, options?: VisualisationOptions): void {

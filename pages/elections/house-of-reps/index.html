@@ -26,15 +26,16 @@
                 Voting data is sourced from the <a href="https://results.aec.gov.au/">Australian Electoral Commission</a>.
             </p>
             <div class="controls" style="display: flex; flex-direction: row; justify-content: space-between;">
-                <div class="options">
+                <div class="options" style="display: flex; flex-direction: row; justify-content: start; gap: 0.2rem; flex-wrap: wrap;">
                     <select name="election" id="election"></select>
                     <select name="electorate" id="electorate">
                         <option value="" disabled selected hidden>Select electorate</option>
                     </select>
                 </div>
-                <div>
-                    <button id="print-svg">Print</button>
-                    <button id="download-svg">Download</button>
+                <div style="display: flex; flex-direction: row; justify-content: end; gap: 0.2rem; flex-wrap: wrap; align-content: flex-end;">
+                    <button id="download-png">PNG</button>
+                    <button id="download-png-high">PNG (High Res)</button>
+                    <button id="download-svg">SVG</button>
                 </div>
             </div>
             <figure id="visualisation" style="flex-grow: 1; width: 80rem; background-color: floralwhite;"></figure>
