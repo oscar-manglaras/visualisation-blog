@@ -64,6 +64,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
     private voteScale = d3.scaleLinear();
     private totalVotes = 0;
     private percentFormat = d3.format('.1%');
+    private percentFormatPrecise = d3.format('.2%');
+    private voteFormat = d3.format(',');
 
     private gradients = new Set<string>();
 
@@ -384,6 +386,16 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         return `url(#${key})`;
     }
 
+    hoverInfo(this: HousePreferenceFlowVisualisation, node?: Node) {
+        if (!node) return null;
+
+        const d = node.candidate;
+        return  `name:\t${candidateName(d)}` + (d.incumbent ? ` (INCUMBENT)\n` : '\n') +
+                `party:\t${d.party_name} (${d.party_abbr})\n` +
+                `round:\t${node.round+1}\n` +
+                `votes:\t ${this.voteFormat(node.votes)} (${this.percentFormatPrecise(node.votes/this.totalVotes)})`
+    }
+
     draw(this: HousePreferenceFlowVisualisation) {
         d3.select(this.svg).select('g.title')
             .attr('visibility', this.data ? 'visible' : 'hidden')
@@ -420,11 +432,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .each((d,i,n) => {
                 d3.select(n[i]!)
                     .select('title')
-                    .text(
-                        `name:\t${candidateName(d)}` + (d.incumbent ? ` (INCUMBENT)\n` : '\n') +
-                        `party:\t${d.party_name} (${d.party_abbr})\n` +
-                        `1st preference votes:\t ${this.nodes[0]?.get(d)?.votes}`
-                    );
+                    .text(this.hoverInfo(this.nodes[0]?.get(d)));
 
                 d3.select(n[i]!)
                     .select('tspan')
@@ -477,7 +485,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         { text: `${d.candidate.given_name}`, bold: true },
                         { text: d.candidate.surname, bold: true },
                         { text: d.candidate.party_name, bold: false },
-                        { text: `${d.votes} votes`, bold: false },
+                        { text: `${this.voteFormat(d.votes)} votes`, bold: false },
                         { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
                     ])
                     .join('tspan')
@@ -502,6 +510,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .data(d => d.values())
                 .join(enter => {
                     const g = enter.append('g');
+                    g.append('title');
                     g.append('rect')
                         .attr('x', -this.bandWidth/2)
                         .attr('width', this.bandWidth)
@@ -518,6 +527,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('transform', d => `translate(0,${this.voteScale(d.offset)})`)
                 .each((d,i,n) => {
                     if (!n[i]) throw new Error();
+
+                    d3.select(n[i])
+                        .select('title')
+                        .text(this.hoverInfo(d));
 
                     d3.select(n[i])
                         .select('rect')
@@ -575,7 +588,14 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('stroke-width', d => this.voteScale(d.votes))
                 .attr('fill', 'none')
                 .attr('opacity', 0.8)
-                .attr('clip-path', d => `url(#round_${d.source.round}-${d.target.round}_area)`);
+                .attr('clip-path', d => `url(#round_${d.source.round}-${d.target.round}_area)`)
+                .selectAll('title')
+                    .data(d => [d])
+                    .join('title')
+                    .text(d =>
+                        `${candidateName(d.source.candidate)} (${d.source.candidate.party_abbr}) => ${candidateName(d.target.candidate)} (${d.target.candidate.party_abbr})\n` +
+                        `${this.voteFormat(d.votes)} votes (${this.percentFormatPrecise(d.votes/d.source.votes)})`
+                    );
 
 
     }

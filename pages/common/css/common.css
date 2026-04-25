@@ -87,6 +87,10 @@ svg {
     display: block;
 }
 
+*:has(> title) {
+    cursor: help;
+}
+
 /* Footer */
 footer {
     font-size: 0.9rem;
