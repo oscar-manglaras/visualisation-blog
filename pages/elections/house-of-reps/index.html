@@ -17,15 +17,45 @@
 
         <main>
             <p>
-                This visualisation shows preference flows between candidates at the 2025 Australian federal election.
-                Each round, the candidate with the fewest votes is elminiated, and their votes are distributed to the remaining
-                candidates based on voter preferences. This visualisation shows the flow of these preferences between rounds.
-                The final two candidates are always placed on the top and bottom of the graph, respectively.
+                This visualisation shows preference flows between candidates in Australian federal elections.
             </p>
+
+            <details>
+                <summary>How preferential voting works.</summary>
+                <p>
+                    Preferential voting, also known as <a href="https://wikipedia.org/wiki/Instant-runoff_voting">instant-runoff voting</a>,
+                    is a form of voting in which voters number candidates from their first to least preferred candidate.
+                </p>
+                <p>
+                    Counting is done in rounds. In the first round, voters first preferences are counted, and the candidate with the
+                    fewest votes is eliminated. In the second round, the votes for the eliminated candidate are then
+                    transferred to the candidates marked as the voters' second preferences, and the new candidate with
+                    the fewest votes is eliminated, with their votes transferred to whichever remaining candidates voters
+                    ranked as their next preference. This continues, with a single candiate being eliminated in each round,
+                    until only one candidate remains. Note however that, in practice, a candidate is guaranteed to win once
+                    they have amassed over 50% of the vote.
+                </p>
+            </details>
+
+            <details>
+                <summary>Understanding the visualisation.</summary>
+                <p>
+                    This visualisation shows the flow of votes between rounds as a result of preferences.
+                    The vertically stacked bars represent the percentage of the overall vote candidates achieve in each round
+                    (the number in each bar),
+                    with the leftmost bar representing the first preference votes received by each candidate,
+                    and the rightmost bar representing the votes that have flowed to the final two candidates, with the winner
+                    being the one who achieves over 50%. The ribbons connecting the bars represent the flow of votes between rounds;
+                    when a candiate is eliminated, the ribbons coming out of their bar extend the bars of the candidates their votes
+                    were transferred to. The thickness of the ribbons directly correlates with the number of votes.
+                    The final two candidates are always placed on the top and bottom of the graph, respectively.
+                </p>
+            </details>
+
             <p>
                 Voting data is sourced from the <a href="https://results.aec.gov.au/">Australian Electoral Commission</a>.
             </p>
-            <div class="controls" style="display: flex; flex-direction: row; justify-content: space-between;">
+            <div class="controls" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
                 <div class="options" style="display: flex; flex-direction: row; justify-content: start; gap: 0.2rem; flex-wrap: wrap;">
                     <select name="election" id="election"></select>
                     <select name="electorate" id="electorate">
