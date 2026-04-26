@@ -6,7 +6,7 @@ export interface VisualisationOptions {
     w?: number|string;
     h?: number|string;
     max_w?: number|string;
-    min_w?: number|string;
+    min_w?: number;
 }
 
 export abstract class Visualisation<T> {
@@ -25,18 +25,26 @@ export abstract class Visualisation<T> {
         this._container = container;
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         container.append(this.svg);
-        console.log(options);
 
         this.resize_observer = new ResizeObserver((entries, _observer) => {
             entries.forEach(e => {
-                this.w = e.contentRect.width;
+                const min_w = options?.min_w ?? -1;
+
+                this.w = e.contentRect.width >= (min_w ?? -1) ?
+                    e.contentRect.width : (min_w ?? 0);
 
                 if (options?.aspect && !options.h){
-                    this.h = e.contentRect.width * options?.aspect;
-                    d3.select(this.svg).attr('height', this.h);
+                    this.h = this.w * options.aspect;
+                    d3.select(this.svg)
+                        .attr('height', e.contentRect.width < (min_w ?? -1)
+                                            ? e.contentRect.width * options.aspect
+                                            : this.h);
                 } else {
                     this.h = e.contentRect.height;
                 }
+
+                d3.select(this.svg)
+                    .attr('viewBox', e.contentRect.width < (min_w ?? -1) ? `0 0 ${this.w} ${this.h}` : null);
 
                 this.resize();
             });
@@ -146,7 +154,7 @@ export abstract class Visualisation<T> {
             .style('background-color', this.background_colour ?? '');
 
         d3.select(this.svg)
-            .style('min-width', options?.min_w ?? '')
+            // .style('min-width', options?.min_w ?? '')
             .style('max-width', options?.max_w ?? '')
             .style('width', '100%')
             .style('background-color', this.background_colour ?? '');

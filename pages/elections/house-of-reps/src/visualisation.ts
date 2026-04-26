@@ -73,7 +73,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     constructor(container: HTMLElement) {
         super(container, {
-            min_w: '50rem',
+            min_w: 800,
             aspect: 0.5,
             w: '80rem',
             background_colour: 'floralwhite',
