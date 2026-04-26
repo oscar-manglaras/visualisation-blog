@@ -78,7 +78,7 @@ figure {
     overflow-x: scroll;
 
     background-color: white;
-    padding: 1rem;
+    padding: 0.1rem;
     border: black 2px solid;
     border-radius: 0.3rem;
 }

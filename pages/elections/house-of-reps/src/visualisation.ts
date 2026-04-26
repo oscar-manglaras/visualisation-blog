@@ -3,6 +3,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import { Visualisation } from "../../../common/modules/visualisation.js";
 import type { Candidate, ElectorateResult } from "./data-processing.js";
 import { darken, labelColour, partyColour } from "./colours.js";
+import { sizeText } from "../../../common/modules/text.js";
 
 interface Node {
     round: number;
@@ -393,7 +394,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
      * be set depending on the specific link.
      */
     private sankeyCurve(this: HousePreferenceFlowVisualisation, selections: d3.Selection<d3.BaseType|SVGPathElement, Link, d3.BaseType, unknown>) {
-        selections.each((d,i,n) => {
+        return selections.each((d,i,n) => {
             const [path, type] = this.sankeyCurvePath(d);
 
             d3.select(n[i]!)
@@ -410,8 +411,6 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr(type === 'line' ? 'fill' : 'stroke', 'none')
                 .attr('stroke-width', type === 'line' ? this.voteScale(d.votes) : null);
         });
-
-        return selections;
     }
 
     private hoverInfo(this: HousePreferenceFlowVisualisation, node?: Node) {
@@ -443,10 +442,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`);
 
         candidateList.selectAll('text')
-            .data(centerOut(actualOrder))
+            .data(centerOut(actualOrder), d => (candidateName(d as Candidate)))
             .join(enter => {
                 const text = enter.append('text');
-                text.append('title');
                 text.append('tspan');
                 return text;
             })
@@ -459,13 +457,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) )
             .each((d,i,n) => {
                 d3.select(n[i]!)
-                    .select('title')
-                    .text(this.hoverInfo(this.nodes[0]?.get(d)));
-
-                d3.select(n[i]!)
                     .select('tspan')
                     .text(`${candidateName(d)} (${d.party_abbr})`)
-            });
+            })
+            .call(sizeText, this.padding.left-15);
 
         candidateList.selectAll('line')
             .data(actualOrder)
@@ -501,14 +496,17 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         decorations.select('g.two-pp')
             .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, 0)`)
-            .selectAll('text')
-                .data(first && second ? [first, second] : [])
-                .join('text')
+            .selectAll('g')
+                .data(first && second ? [first, second] : [], d => {
+                    const c = (d as Node).candidate;
+                    return `${candidateName(c)}-${c.party_name}`;
+                })
+                .join('g')
                 .attr('transform', (_,i) => `translate(${this.padding.right / 2}, ${this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75))})`)
                 .attr('dominant-baseline', 'middle')
                 .attr('text-anchor', 'middle')
                 .attr('font-size', this.labelSize)
-                .selectAll('tspan')
+                .selectAll('text')
                     .data(d => [
                         { text: `${d.candidate.given_name}`, bold: true },
                         { text: d.candidate.surname, bold: true },
@@ -516,16 +514,16 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         { text: `${this.voteFormat(d.votes)} votes`, bold: false },
                         { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
                     ])
-                    .join('tspan')
+                    .join('text')
                     .attr('x', 0)
-                    .attr("dy", (_, i, n) => {
+                    .attr("y", (_, i, n) => {
                         const lineHeight = this.labelSize + this.labelPadding;
-                        return i === 0
-                            ? (-(n.length - 1) / 2 * lineHeight)
-                            : lineHeight;
+                        const startOffset = -((n.length - 1) / 2) * lineHeight;
+                        return startOffset + i * lineHeight;
                     })
                     .attr('font-weight', d => d.bold ? 'bold' : 'normal')
-                    .text(d => d.text);
+                    .text(d => d.text)
+                    .call(sizeText, this.padding.right-4);
 
         d3.select(this.svg)
             .select('g.nodes')
