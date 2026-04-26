@@ -56,7 +56,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     private labelSize = 12;
     private labelPadding = 4;
-    private bandWidth = 20;
+    private bandWidth = 16;
 
     private candidatePlacementOrder: Candidate[] = [];
     private nodes: Map<Candidate,Node>[] = [];
@@ -297,7 +297,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         return links.toSorted((a,b) => a.target.offset - b.target.offset );
     }
 
-    private drawSankeyCurve(this: HousePreferenceFlowVisualisation, link: Link): string {
+    private sankeyCurvePath(this: HousePreferenceFlowVisualisation, link: Link): [string,'line'|'box'] {
         const path = d3.path();
         const source = link.source;
         const target = link.target;
@@ -343,25 +343,26 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         ? 0.0001
                         : 0;
 
-        // We need to add a horizontal hook to the start of the line to ensure the
-        // start of the line is attached to the target node.
-        path.moveTo(sourceX - this.bandWidth/2, sourceY);
-        path.lineTo(sourceX, sourceY);
-
-        if (sourceY === targetY)
-            path.bezierCurveTo(midX, sourceY + wiggle, midX, targetY - wiggle, targetX, targetY);
-
         // If the line is too thick relative to the distance between nodes, then a bezier curve
-        // ends up rendering incorrectly. When this happens, draw a straight line instead.
-        else if ((targetX - sourceX) / this.voteScale(votes) < 2)
-            path.lineTo(targetX, targetY);
-        else
-            path.bezierCurveTo(midX, sourceY, midX, targetY, targetX, targetY);
+        // ends up rendering incorrectly. When this happens, draw a straight rectangle instead.
+        if ((targetX - sourceX) < this.voteScale(votes*1.3)) {
+            const sourceYTop = this.voteScale(sourceOffset);
+            const sourceYBottom = this.voteScale(sourceOffset + votes);
+            const targetYTop = this.voteScale(targetOffset);
+            const targetYBottom = this.voteScale(targetOffset + votes);
 
-        // We need to add a horizontal hook to the line to ensure the end of the line is attached to the target node.
-        path.lineTo(targetX + this.bandWidth/2, targetY);
+            path.moveTo(sourceX, sourceYTop);
+            path.lineTo(targetX, targetYTop);
+            path.lineTo(targetX, targetYBottom);
+            path.lineTo(sourceX, sourceYBottom);
+            path.closePath();
 
-        return path.toString();
+            return [path.toString(), 'box'];
+        } else {
+            path.moveTo(sourceX, sourceY);
+            path.bezierCurveTo(midX, sourceY + wiggle, midX, targetY - wiggle, targetX, targetY);
+            return [path.toString(), 'line'];
+        }
     }
 
     private defineGradient(this: HousePreferenceFlowVisualisation, colour1: string, colour2: string): string | null {
@@ -386,7 +387,34 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         return `url(#${key})`;
     }
 
-    hoverInfo(this: HousePreferenceFlowVisualisation, node?: Node) {
+    /**
+     * Sets properties of SVG path elements to draw the sankey curves.
+     * As some paths use zero-width lines, and other use polygons, a number of attributes must all
+     * be set depending on the specific link.
+     */
+    private sankeyCurve(this: HousePreferenceFlowVisualisation, selections: d3.Selection<d3.BaseType|SVGPathElement, Link, d3.BaseType, unknown>) {
+        selections.each((d,i,n) => {
+            const [path, type] = this.sankeyCurvePath(d);
+
+            d3.select(n[i]!)
+                .attr('d', path)
+                .attr(type === 'line' ? 'stroke' : 'fill', (d.votes/this.totalVotes) > 0.005 ?
+                    this.defineGradient(
+                        partyColour(d.source.candidate.party_abbr),
+                        partyColour(d.target.candidate.party_abbr)
+                    )
+                    : this.defineGradient(
+                        darken(partyColour(d.source.candidate.party_abbr), 1),
+                        darken(partyColour(d.target.candidate.party_abbr), 1)
+                    ))
+                .attr(type === 'line' ? 'fill' : 'stroke', 'none')
+                .attr('stroke-width', type === 'line' ? this.voteScale(d.votes) : null);
+        });
+
+        return selections;
+    }
+
+    private hoverInfo(this: HousePreferenceFlowVisualisation, node?: Node) {
         if (!node) return null;
 
         const d = node.candidate;
@@ -575,18 +603,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .sort((a,b) => a.source.transfers.length - b.source.transfers.length)
                 .classed('link', true)
                 .classed('eliminated', d => d.source.candidate.ballot_id !== d.target.candidate.ballot_id)
-                .attr('d', d => this.drawSankeyCurve(d))
-                .attr('stroke', d => (d.votes/this.totalVotes) > 0.005 ?
-                    this.defineGradient(
-                        partyColour(d.source.candidate.party_abbr),
-                        partyColour(d.target.candidate.party_abbr)
-                    )
-                    : this.defineGradient(
-                        darken(partyColour(d.source.candidate.party_abbr), 1),
-                        darken(partyColour(d.target.candidate.party_abbr), 1)
-                    ))
-                .attr('stroke-width', d => this.voteScale(d.votes))
-                .attr('fill', 'none')
+                .call((s) => this.sankeyCurve(s))
                 .attr('opacity', 0.8)
                 .attr('clip-path', d => `url(#round_${d.source.round}-${d.target.round}_area)`)
                 .selectAll('title')
