@@ -154,9 +154,6 @@ export abstract class Visualisation<T> {
             .style('background-color', this.background_colour ?? '');
 
         d3.select(this.svg)
-            // .style('min-width', options?.min_w ?? '')
-            .style('max-width', options?.max_w ?? '')
-            .style('width', '100%')
             .style('background-color', this.background_colour ?? '');
     }
 

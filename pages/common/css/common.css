@@ -78,13 +78,15 @@ figure {
     overflow-x: scroll;
 
     background-color: white;
-    padding: 0.1rem;
+    padding: 0;
     border: black 2px solid;
     border-radius: 0.3rem;
 }
 
 svg {
     display: block;
+    width: calc(100% - 0.4rem);
+    margin: 0.2rem;
 }
 
 *:has(> title) {
