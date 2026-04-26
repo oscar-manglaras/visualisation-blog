@@ -454,12 +454,10 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('text-anchor', 'end')
             .attr('font-size', this.labelSize)
             .attr('white-space', 'pre-wrap')
+            .attr('fill', d => darken(partyColour(d.party_abbr), 0.8))
+            .attr('fill', d => darken(partyColour(d.party_abbr), 0.8))
             .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) )
-            .each((d,i,n) => {
-                d3.select(n[i]!)
-                    .select('tspan')
-                    .text(`${candidateName(d)} (${d.party_abbr})`)
-            })
+            .text(d => `${candidateName(d)} (${d.party_abbr})`)
             .call(sizeText, this.padding.left-15);
 
         candidateList.selectAll('line')
@@ -469,7 +467,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('y1', d => this.calculateLabelY(d, labelStore).y)
             .attr('x2', 0)
             .attr('y2', d => this.calculateLabelY(d, labelStore).originalY)
-            .attr('stroke', 'black')
+            .attr('stroke', D => partyColour(D.party_abbr))
             .attr('stroke-width', 1);
 
         const decorations = d3.select(this.svg)

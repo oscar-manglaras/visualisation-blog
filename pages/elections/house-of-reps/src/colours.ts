@@ -16,8 +16,8 @@ export const partyColourMapping: Record<string,string> = {
 
 export const FALLBACK_COLOUR = '#848484';
 
-export function partyColour(partyAbbr: string): string {
-    return partyColourMapping[partyAbbr] ?? FALLBACK_COLOUR;
+export function partyColour(partyAbbr: string, fallback?: string): string {
+    return partyColourMapping[partyAbbr] ?? (fallback ?? FALLBACK_COLOUR);
 }
 
 export function darken(colour: string, k: number): string {
