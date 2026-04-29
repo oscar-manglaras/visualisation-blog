@@ -74,8 +74,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     constructor(container: HTMLElement) {
         super(container, {
-            min_w: 800,
-            aspect: 0.6,
+            min_w: 900,
+            aspect: 0.57,
             w: '80rem',
             background_colour: 'floralwhite',
         });
@@ -108,7 +108,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         this.options = opts ?? {};
         this.candidatePlacementOrder = this.calculateCandidateOrder();
 
-        this.padding.bottom = (this.candidatePlacementOrder.length + 3) * this.labelSize + 50;
+        this.padding.bottom = (this.candidatePlacementOrder.length + 3) * this.labelSize + 65;
         // this.candidates = data?.candidates ?? [];
 
         // const roundNodes: Map<Candidate,Node>[] = [];
@@ -490,9 +490,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('font-size', this.labelSize)
                 .selectAll('text')
                     .data(d => [
-                        { text: `${d.candidate.given_name}`, bold: true },
-                        { text: d.candidate.surname, bold: true },
-                        { text: d.candidate.party_name, bold: false },
+                        { text: `${d.candidate.given_name}`, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: d.candidate.surname, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: `${d.candidate.party_name} (${d.candidate.party_abbr})`, bold: false, fill: partyColour(d.candidate.party_abbr) },
                         { text: `${this.voteFormat(d.votes)} votes`, bold: false },
                         { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
                     ])
@@ -503,6 +503,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         const startOffset = -((n.length - 1) / 2) * lineHeight;
                         return startOffset + i * lineHeight;
                     })
+                    .attr('fill', d => d.fill ?? null)
                     .attr('font-weight', d => d.bold ? 'bold' : 'normal')
                     .text(d => d.text)
                     .call(sizeText, this.padding.right-4);
@@ -649,7 +650,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 g.append('g').classed('transfers', true);
                 return g;
             })
-            .attr('transform', d => `translate(${this.roundScale(d.round) + this.bandWidth}, 10)`)
+            .attr('transform', d => `translate(${this.roundScale(d.round) + this.bandWidth}, 23)`)
             .attr('dominant-baseline', 'hanging')
             .attr('font-size', fontSize)
             .selectAll('text')
