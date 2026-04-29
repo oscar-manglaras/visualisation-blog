@@ -92,7 +92,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         decorations.append('line').classed('mid-point', true);
         decorations.append('text').classed('mid-point', true)
 
-        const _2pp = decorations.append('g').classed('two-pp', true);
+        const _2pp = svg.append('g').classed('two-pp', true);
         _2pp.append('text').classed('winner', true);
         _2pp.append('text').classed('second', true);
     }
@@ -424,7 +424,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 `votes:\t ${this.voteFormat(node.votes)} (${this.percentFormatPrecise(node.votes/this.totalVotes)})`
     }
 
-    draw(this: HousePreferenceFlowVisualisation) {
+    private drawTitle(this: HousePreferenceFlowVisualisation) {
         d3.select(this.svg).select('g.title')
             .attr('visibility', this.data ? 'visible' : 'hidden')
             .select('text')
@@ -434,7 +434,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('dominant-baseline', 'hanging')
             .attr('text-anchor', 'middle')
             .attr('font-size', 2*this.labelSize);
+    }
 
+    private drawCandidates(this: HousePreferenceFlowVisualisation) {
         const labelStore: LabelStore = new Map();
         const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
 
@@ -470,30 +472,11 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('stroke', D => partyColour(D.party_abbr))
             .attr('stroke-width', 1);
 
-        const decorations = d3.select(this.svg)
-            .select('g.decorations')
-            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`)
-            .attr('visibility', this.data ? 'visible' : 'hidden');
-            
-        decorations.select('line.mid-point')
-            .attr('stroke', 'black')
-            .attr('x1', -7)
-            .attr('y1', this.voteScale(this.totalVotes/2))
-            .attr('x2', (this.w - this.padding.left - this.padding.right) + 10)
-            .attr('y2', this.voteScale(this.totalVotes/2))
-            .attr('stroke-width', 2);
-
-        decorations.select('text.mid-point')
-            .text('50%')
-            .attr('x', (this.w - this.padding.left - this.padding.right) + 20)
-            .attr('y', this.voteScale(this.totalVotes/2))
-            .attr('dominant-baseline', 'middle');
-
         const first = this.nodes.at(-1)?.get(this.candidatePlacementOrder[0]!);
         const second = this.nodes.at(-1)?.get(this.candidatePlacementOrder[1]!);
 
-        decorations.select('g.two-pp')
-            .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, 0)`)
+        d3.select(this.svg).select('g.two-pp')
+            .attr('transform', `translate(${this.w - this.padding.right}, ${this.padding.top})`)
             .selectAll('g')
                 .data(first && second ? [first, second] : [], d => {
                     const c = (d as Node).candidate;
@@ -522,7 +505,30 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     .attr('font-weight', d => d.bold ? 'bold' : 'normal')
                     .text(d => d.text)
                     .call(sizeText, this.padding.right-4);
+    }
 
+    private drawDecorations(this: HousePreferenceFlowVisualisation) {
+        const decorations = d3.select(this.svg)
+            .select('g.decorations')
+            .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`)
+            .attr('visibility', this.data ? 'visible' : 'hidden');
+            
+        decorations.select('line.mid-point')
+            .attr('stroke', 'black')
+            .attr('x1', -7)
+            .attr('y1', this.voteScale(this.totalVotes/2))
+            .attr('x2', (this.w - this.padding.left - this.padding.right) + 10)
+            .attr('y2', this.voteScale(this.totalVotes/2))
+            .attr('stroke-width', 2);
+
+        decorations.select('text.mid-point')
+            .text('50%')
+            .attr('x', (this.w - this.padding.left - this.padding.right) + 20)
+            .attr('y', this.voteScale(this.totalVotes/2))
+            .attr('dominant-baseline', 'middle');
+    }
+
+    private drawNodes(this: HousePreferenceFlowVisualisation) {
         d3.select(this.svg)
             .select('g.nodes')
             .selectAll('g.round')
@@ -569,7 +575,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .attr('y', this.voteScale(d.votes/2))
                         .text(d3.format('d')((d.votes/this.totalVotes) * 100));
                 });
+    }
 
+    private drawLinks(this: HousePreferenceFlowVisualisation) {
         const roundWidth = this.roundScale(1);
 
         d3.select(this.svg)
@@ -609,7 +617,13 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         `${candidateName(d.source.candidate)} (${d.source.candidate.party_abbr}) => ${candidateName(d.target.candidate)} (${d.target.candidate.party_abbr})\n` +
                         `${this.voteFormat(d.votes)} votes (${this.percentFormatPrecise(d.votes/d.source.votes)})`
                     );
+    }
 
-
+    draw(this: HousePreferenceFlowVisualisation) {
+        this.drawTitle();
+        this.drawCandidates();
+        this.drawDecorations();
+        this.drawNodes();
+        this.drawLinks();
     }
 }
