@@ -51,7 +51,7 @@ function candidateName(candidate: Candidate): string {
 
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
-        left: 200, right: 140,
+        left: 160, right: 160,
         top: 60, bottom: 20,
     };
 
@@ -399,7 +399,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
             d3.select(n[i]!)
                 .attr('d', path)
-                .attr(type === 'line' ? 'stroke' : 'fill', (d.votes/this.totalVotes) > 0.005 ?
+                .attr(type === 'line' ? 'stroke' : 'fill', (d.votes/this.totalVotes) > 0.0035 ?
                     this.defineGradient(
                         partyColour(d.source.candidate.party_abbr),
                         partyColour(d.target.candidate.party_abbr)
@@ -407,7 +407,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     : this.defineGradient(
                         darken(partyColour(d.source.candidate.party_abbr), 1),
                         darken(partyColour(d.target.candidate.party_abbr), 1)
-                    ))
+                    )
+                )
                 .attr(type === 'line' ? 'fill' : 'stroke', 'none')
                 .attr('stroke-width', type === 'line' ? this.voteScale(d.votes) : null);
         });
@@ -454,8 +455,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('text-anchor', 'end')
             .attr('font-size', this.labelSize)
             .attr('white-space', 'pre-wrap')
-            .attr('fill', d => darken(partyColour(d.party_abbr), 0.8))
-            .attr('fill', d => darken(partyColour(d.party_abbr), 0.8))
+            .attr('fill', d => darken(partyColour(d.party_abbr), 0.5))
             .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) )
             .text(d => `${candidateName(d)} (${d.party_abbr})`)
             .call(sizeText, this.padding.left-15);
