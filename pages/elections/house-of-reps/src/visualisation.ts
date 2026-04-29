@@ -51,8 +51,8 @@ function candidateName(candidate: Candidate): string {
 
 export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateResult> {
     private padding = {
-        left: 160, right: 160,
-        top: 60, bottom: 20,
+        left: 180, right: 160,
+        top: 60, bottom: 200,
     };
 
     private labelSize = 12;
@@ -74,8 +74,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
     constructor(container: HTMLElement) {
         super(container, {
-            min_w: 800,
-            aspect: 0.5,
+            min_w: 900,
+            aspect: 0.57,
             w: '80rem',
             background_colour: 'floralwhite',
         });
@@ -83,16 +83,19 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         const svg = d3.select(this.svg);
 
         svg.append('defs');
-        svg.append('g').classed('title', true).append('text');
+        svg.append('g').classed('title', true)
+            .append('text');
         svg.append('g').classed('candidates', true);
         svg.append('g').classed('links', true);
         svg.append('g').classed('nodes', true);
+        svg.append('g').classed('round-notes', true)
+            .append('g').classed('labels', true);
 
         const decorations = svg.append('g').classed('decorations', true);
         decorations.append('line').classed('mid-point', true);
         decorations.append('text').classed('mid-point', true)
 
-        const _2pp = decorations.append('g').classed('two-pp', true);
+        const _2pp = svg.append('g').classed('two-pp', true);
         _2pp.append('text').classed('winner', true);
         _2pp.append('text').classed('second', true);
     }
@@ -104,6 +107,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
         this.data = data;
         this.options = opts ?? {};
         this.candidatePlacementOrder = this.calculateCandidateOrder();
+
+        this.padding.bottom = (this.candidatePlacementOrder.length + 3) * this.labelSize + 65;
         // this.candidates = data?.candidates ?? [];
 
         // const roundNodes: Map<Candidate,Node>[] = [];
@@ -181,7 +186,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             }
         });
 
-        this.draw();
+        this.resize();
     }
 
     calculateCandidateOrder(this: HousePreferenceFlowVisualisation): Candidate[] {
@@ -424,7 +429,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 `votes:\t ${this.voteFormat(node.votes)} (${this.percentFormatPrecise(node.votes/this.totalVotes)})`
     }
 
-    draw(this: HousePreferenceFlowVisualisation) {
+    private drawTitle(this: HousePreferenceFlowVisualisation) {
         d3.select(this.svg).select('g.title')
             .attr('visibility', this.data ? 'visible' : 'hidden')
             .select('text')
@@ -434,7 +439,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('dominant-baseline', 'hanging')
             .attr('text-anchor', 'middle')
             .attr('font-size', 2*this.labelSize);
+    }
 
+    private drawCandidates(this: HousePreferenceFlowVisualisation) {
         const labelStore: LabelStore = new Map();
         const actualOrder = this.sortCandidates([...this.nodes[0]?.values()??[]]).map(d => d.candidate);
 
@@ -444,11 +451,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
 
         candidateList.selectAll('text')
             .data(centerOut(actualOrder), d => (candidateName(d as Candidate)))
-            .join(enter => {
-                const text = enter.append('text');
-                text.append('tspan');
-                return text;
-            })
+            .join('text')
             .attr('x', -15)
             .attr('y', d => this.calculateLabelY(d, labelStore).y)
             .attr('dominant-baseline', 'middle')
@@ -458,7 +461,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('fill', d => darken(partyColour(d.party_abbr), 0.5))
             .sort((a,b) => (this.nodes[0]?.get(a)?.offset ?? 0) - (this.nodes[0]?.get(b)?.offset ?? 0) )
             .text(d => `${candidateName(d)} (${d.party_abbr})`)
-            .call(sizeText, this.padding.left-15);
+            .call(sizeText, this.padding.left-18);
 
         candidateList.selectAll('line')
             .data(actualOrder)
@@ -470,6 +473,43 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('stroke', D => partyColour(D.party_abbr))
             .attr('stroke-width', 1);
 
+        const first = this.nodes.at(-1)?.get(this.candidatePlacementOrder[0]!);
+        const second = this.nodes.at(-1)?.get(this.candidatePlacementOrder[1]!);
+
+        d3.select(this.svg).select('g.two-pp')
+            .attr('transform', `translate(${this.w - this.padding.right}, ${this.padding.top})`)
+            .selectAll('g')
+                .data(first && second ? [first, second] : [], d => {
+                    const c = (d as Node).candidate;
+                    return `${candidateName(c)}-${c.party_name}`;
+                })
+                .join('g')
+                .attr('transform', (_,i) => `translate(${this.padding.right / 2}, ${this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75))})`)
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
+                .attr('font-size', this.labelSize)
+                .selectAll('text')
+                    .data(d => [
+                        { text: `${d.candidate.given_name}`, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: d.candidate.surname, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: `${d.candidate.party_name} (${d.candidate.party_abbr})`, bold: false, fill: partyColour(d.candidate.party_abbr) },
+                        { text: `${this.voteFormat(d.votes)} votes`, bold: false },
+                        { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
+                    ])
+                    .join('text')
+                    .attr('x', 0)
+                    .attr("y", (_, i, n) => {
+                        const lineHeight = this.labelSize + this.labelPadding;
+                        const startOffset = -((n.length - 1) / 2) * lineHeight;
+                        return startOffset + i * lineHeight;
+                    })
+                    .attr('fill', d => d.fill ?? null)
+                    .attr('font-weight', d => d.bold ? 'bold' : 'normal')
+                    .text(d => d.text)
+                    .call(sizeText, this.padding.right-4);
+    }
+
+    private drawDecorations(this: HousePreferenceFlowVisualisation) {
         const decorations = d3.select(this.svg)
             .select('g.decorations')
             .attr('transform', `translate(${this.padding.left}, ${this.padding.top})`)
@@ -488,41 +528,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
             .attr('x', (this.w - this.padding.left - this.padding.right) + 20)
             .attr('y', this.voteScale(this.totalVotes/2))
             .attr('dominant-baseline', 'middle');
+    }
 
-        const first = this.nodes.at(-1)?.get(this.candidatePlacementOrder[0]!);
-        const second = this.nodes.at(-1)?.get(this.candidatePlacementOrder[1]!);
-
-        decorations.select('g.two-pp')
-            .attr('transform', `translate(${this.w - this.padding.left - this.padding.right}, 0)`)
-            .selectAll('g')
-                .data(first && second ? [first, second] : [], d => {
-                    const c = (d as Node).candidate;
-                    return `${candidateName(c)}-${c.party_name}`;
-                })
-                .join('g')
-                .attr('transform', (_,i) => `translate(${this.padding.right / 2}, ${this.voteScale(this.totalVotes * (i == 0 ? 0.25 : 0.75))})`)
-                .attr('dominant-baseline', 'middle')
-                .attr('text-anchor', 'middle')
-                .attr('font-size', this.labelSize)
-                .selectAll('text')
-                    .data(d => [
-                        { text: `${d.candidate.given_name}`, bold: true },
-                        { text: d.candidate.surname, bold: true },
-                        { text: d.candidate.party_name, bold: false },
-                        { text: `${this.voteFormat(d.votes)} votes`, bold: false },
-                        { text: this.percentFormat((d.votes ?? 0)/this.totalVotes), bold: false }
-                    ])
-                    .join('text')
-                    .attr('x', 0)
-                    .attr("y", (_, i, n) => {
-                        const lineHeight = this.labelSize + this.labelPadding;
-                        const startOffset = -((n.length - 1) / 2) * lineHeight;
-                        return startOffset + i * lineHeight;
-                    })
-                    .attr('font-weight', d => d.bold ? 'bold' : 'normal')
-                    .text(d => d.text)
-                    .call(sizeText, this.padding.right-4);
-
+    private drawNodes(this: HousePreferenceFlowVisualisation) {
         d3.select(this.svg)
             .select('g.nodes')
             .selectAll('g.round')
@@ -569,7 +577,9 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         .attr('y', this.voteScale(d.votes/2))
                         .text(d3.format('d')((d.votes/this.totalVotes) * 100));
                 });
+    }
 
+    private drawLinks(this: HousePreferenceFlowVisualisation) {
         const roundWidth = this.roundScale(1);
 
         d3.select(this.svg)
@@ -609,7 +619,90 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                         `${candidateName(d.source.candidate)} (${d.source.candidate.party_abbr}) => ${candidateName(d.target.candidate)} (${d.target.candidate.party_abbr})\n` +
                         `${this.voteFormat(d.votes)} votes (${this.percentFormatPrecise(d.votes/d.source.votes)})`
                     );
+    }
 
+    private drawRoundNotes() {
+        type DataType = Node;
 
+        const eliminatedCandidates: DataType[] = this.nodes.map(round => 
+                [...round.values()].find(n => n.transfers.length > 1)
+            ).filter(n => n !== undefined);
+
+        const fontSize = this.labelSize * 0.8;
+        const padding = this.labelPadding * 0.8;
+
+        interface TextDatum {
+            text: string;
+            bold?: boolean;
+            x?: number;
+            monospace?: boolean;
+            fill?: string;
+        }
+
+        d3.select(this.svg)
+            .select('g.round-notes')
+            .attr('transform', `translate(${this.padding.left}, ${(this.h - this.padding.bottom)})`)
+            .selectAll('g.round')
+            .data(eliminatedCandidates, d => `${this.data?.year}|${this.data?.name}|${(d as DataType).candidate.ballot_id}`)
+            .join(enter => {
+                const g = enter.append('g').classed('round', true);
+                // g.append('text').classed('candidate-name', true);
+                g.append('g').classed('transfers', true);
+                return g;
+            })
+            .attr('transform', d => `translate(${this.roundScale(d.round) + this.bandWidth}, 23)`)
+            .attr('dominant-baseline', 'hanging')
+            .attr('font-size', fontSize)
+            .selectAll('text')
+                .data(d => {
+                    const lines: TextDatum[] = [
+                        { text: `${d.candidate.given_name}`, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: d.candidate.surname, bold: true, fill: partyColour(d.candidate.party_abbr) },
+                        { text: `${d.candidate.party_name} (${d.candidate.party_abbr})`, fill: partyColour(d.candidate.party_abbr) },
+                        { text: `${this.voteFormat(d.votes)} votes transferred:`},
+                        ...d.transfers.sort((a,b) => b.votes - a.votes)
+                                      .map(l => ({
+                                            text: `${this.percentFormat(l.votes/l.source.votes).padStart(5, '\u00A0')} ${l.target.candidate.surname} (${l.target.candidate.party_abbr})`,
+                                            x: 10,
+                                            monospace: true,
+                                            fill: partyColour(l.target.candidate.party_abbr, '#666')
+                                        }))
+                    ];
+
+                    return lines;
+                })
+                .join('text')
+                .attr('x', d => d.x??0)
+                .attr("y", (_, i) => {
+                    const lineHeight = fontSize + padding;
+                    return i * lineHeight;
+                })
+                .attr('fill', d => d.fill ?? null)
+                .attr('font-family', d => d.monospace ? 'Atkinson Hyperlegible Mono,Monospace' : null)
+                .attr('font-weight', d => d.bold ? 'bold' : 'normal')
+                .text(d => d.text)
+                .call(sizeText, this.roundScale(1) - this.bandWidth)
+
+        d3.select(this.svg)
+                .select('g.round-notes g.labels')
+                .selectAll('text')
+                .data([0])
+                .join('text')
+                .attr('transform', `translate(${(this.w - this.padding.left - this.padding.right) / 2}, 0)`)
+                .attr('y', this.padding.bottom - 10)
+                .attr('font-size', 15)
+                .attr('fill', '#595757')
+                .attr('text-anchor', 'middle')
+                .text('Candidates eliminated in each round, and the percentage of their votes transferred to remaining candidates.');
+
+    }
+
+    draw(this: HousePreferenceFlowVisualisation) {
+        this.drawTitle();
+        this.drawCandidates();
+        this.drawDecorations();
+        this.drawNodes();
+        this.drawLinks();
+        this.drawRoundNotes();
     }
 }
