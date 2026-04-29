@@ -9,7 +9,9 @@ export function sizeText(selection: d3.Selection<d3.BaseType|SVGTextElement,any,
             let width: number|null;
 
             if (node instanceof SVGTextElement || node instanceof SVGTSpanElement) {
-                if (node.getAttribute('textLength')) return node.getAttribute('textLength');
+                const existingWidth = parseFloat(node.getAttribute('textLength')??'0');
+                if (existingWidth && existingWidth == maxWidth)
+                    return node.getAttribute('textLength');
                 width = (node.getBBox().width ?? 0) > maxWidth ? maxWidth : null;
 
             } else
