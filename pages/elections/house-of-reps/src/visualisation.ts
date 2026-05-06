@@ -670,7 +670,7 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                     ];
 
                     return lines;
-                })
+                }, d => (d as TextDatum).text)
                 .join('text')
                 .attr('x', d => d.x??0)
                 .attr("y", (_, i) => {
@@ -693,7 +693,8 @@ export class HousePreferenceFlowVisualisation extends Visualisation<ElectorateRe
                 .attr('font-size', 15)
                 .attr('fill', '#595757')
                 .attr('text-anchor', 'middle')
-                .text('Candidates eliminated in each round, and the percentage of their votes transferred to remaining candidates.');
+                .attr('visibility', this.data ? 'visible' : 'hidden')
+                .text('Candidates eliminated in each round and the percentage of their votes transferred to remaining candidates.');
 
     }
 
