@@ -1,10 +1,12 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-import { fetch_data, type ElectionResults, type ElectorateResult } from "./src/data-processing.js";
+import { fetchData, type ElectionResults, type ElectorateResult } from "./src/data-processing.js";
 import { HousePreferenceFlowVisualisation } from "./src/visualisation.js";
 import { setURLParam } from "../../common/modules/url.js";
 
 interface SourceFile {
-    federal_elections: {[key: string]: string};
+    'Federal Elections': {[key: string]: string};
+    'Federal By-Elections': {[key: string]: string};
+    [key: string]: {[key: string]: string};
 }
 
 const electorateSelect = d3.select(document.querySelector('select#electorate') as HTMLInputElement);
@@ -29,11 +31,12 @@ function getQueryParams() {
     const params = new URLSearchParams(window.location.search);
     return {
         election: params.get('election'),
+        type: params.get('type'),
         electorate: params.get('electorate'),
     }
 }
 
-function loadElection(results?: ElectionResults) {
+function loadElection(results?: ElectionResults | null) {
     const electorates_by_state = d3.group(results?.electorates ?? [], d => d.state);
 
     function updateVis(electorate?: string): void {
@@ -67,29 +70,38 @@ async function main() {
     const sources = await d3.json('./data/sources.json') as SourceFile | null;
     if (!sources) return console.error('failed to load sources.json');
 
-    type SourceEntry = {year: string, source: string};
-    const federalElections = Object.entries(sources.federal_elections)
-        .map(([year,source]): SourceEntry => ({year: year, source: source}))
-        .sort((a,b) => b.year.localeCompare(a.year));
+    const sourceMap = Object.entries(sources).map(([type, entries]) => ({
+        label: type,
+        elections: Object.entries(entries)
+            .map(([election, source]) => ({ type: type, election: election, source }))
+            .sort((a, b) => b.election.localeCompare(a.election))
+    }));
 
     const params = getQueryParams();
 
     electionSelect
         .on('change', async (e: Event) => {
-            const year = (e.target as HTMLSelectElement).value ?? '';
-            const source = sources.federal_elections[year];
-            if (!source) throw new Error(`no source for federal_elections.${year}`);
-            setURLParam('election', year);
-            loadElection(await fetch_data(source, year));
+            const value = (e.target as HTMLSelectElement).value ?? '';
+            const [group, election] = value.split('|');
+
+            const source = sources[group??'']?.[election??''];
+            if (!source) throw new Error(`no source for ${group}.${election}`);
+            setURLParam('election', election??null);
+            setURLParam('type', group??null);
+            loadElection(await fetchData(source, election??''));
         })
+        .selectAll('optgroup')
+            .data(sourceMap, d => (d as typeof sourceMap[number]).label)
+            .join('optgroup')
+            .attr('label', d => d.label)
         .selectAll('option')
-        .data(federalElections, (d) => (d as SourceEntry)?.year)
-        .join('option')
-        .order()
-        .attr('value', d => d.year)
-        .text(d => `${d.year} federal election`)
-        .filter(d => d.year === params.election)
-        .attr('selected', true);
+            .data(d => d.elections, (d) => (d as typeof sourceMap[number]["elections"][number]).election)
+            .join('option')
+            .order()
+            .attr('value', d => `${d.type}|${d.election}`)
+            .text(d => `${d.election}`)
+            .filter(d => d.election === params.election)
+            .attr('selected', true);
 
     electionSelect.node()?.dispatchEvent(new Event('change'));
 }
