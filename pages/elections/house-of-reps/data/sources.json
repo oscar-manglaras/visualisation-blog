@@ -1,14 +1,37 @@
 {
     "Federal Elections": {
-        "2025 Federal Election": "./data/2025-federal-election.csv.gz",
-        "2022 Federal Election": "./data/2022-federal-election.csv.gz",
-        "2019 Federal Election": "./data/2019-federal-election.csv.gz",
-        "2016 Federal Election": "./data/2016-federal-election.csv.gz",
-        "2013 Federal Election": "./data/2013-federal-election.csv.gz",
-        "2010 Federal Election": "./data/2010-federal-election.csv.gz",
-        "2007 Federal Election": "./data/2007-federal-election.csv.gz"
+        "2025 Federal Election": "./data/federal/2025-federal-election.csv.gz",
+        "2022 Federal Election": "./data/federal/2022-federal-election.csv.gz",
+        "2019 Federal Election": "./data/federal/2019-federal-election.csv.gz",
+        "2016 Federal Election": "./data/federal/2016-federal-election.csv.gz",
+        "2013 Federal Election": "./data/federal/2013-federal-election.csv.gz",
+        "2010 Federal Election": "./data/federal/2010-federal-election.csv.gz",
+        "2007 Federal Election": "./data/federal/2007-federal-election.csv.gz"
     },
     "Federal By-elections": {
-        "2026 Farrer By-election": "./data/2026-farrer.csv.gz"
+        "2026 Farrer By-election": "./data/federal-by-elections/2026-farrer.csv.gz",
+        "2024 Cook By-election": "./data/federal-by-elections/2024-cook.csv.gz",
+        "2024 Dunkley By-election": "./data/federal-by-elections/2024-dunkley.csv.gz",
+        "2023 Fadden By-election": "./data/federal-by-elections/2023-fadden.csv.gz",
+        "2023 Ashton By-election": "./data/federal-by-elections/2023-ashton.csv.gz",
+        "2020 Groom By-election": "./data/federal-by-elections/2020-groom.csv.gz",
+        "2020 Eden-Monaro By-election": "./data/federal-by-elections/2020-eden-monaro.csv.gz",
+        "2018 Wentworth By-election": "./data/federal-by-elections/2018-wentworth.csv.gz",
+        "2018 Perth By-election": "./data/federal-by-elections/2018-perth.csv.gz",
+        "2018 Mayo By-election": "./data/federal-by-elections/2018-mayo.csv.gz",
+        "2018 Longman By-election": "./data/federal-by-elections/2018-longman.csv.gz",
+        "2018 Fremantle By-election": "./data/federal-by-elections/2018-fremantle.csv.gz",
+        "2018 Braddon By-election": "./data/federal-by-elections/2018-braddon.csv.gz",
+        "2018 Batman By-election": "./data/federal-by-elections/2018-batman.csv.gz",
+        "2017 Bennelong By-election": "./data/federal-by-elections/2017-bennelong.csv.gz",
+        "2017 New England By-election": "./data/federal-by-elections/2017-new_england.csv.gz",
+        "2015 North Sydney By-election": "./data/federal-by-elections/2015-north_sydney.csv.gz",
+        "2015 Canning By-election": "./data/federal-by-elections/2015-canning.csv.gz",
+        "2014 Griffith By-election": "./data/federal-by-elections/2014-griffith.csv.gz",
+        "2009 Bradfield By-election": "./data/federal-by-elections/2009-bradfield.csv.gz",
+        "2009 Higgins By-election": "./data/federal-by-elections/2009-higgins.csv.gz",
+        "2008 Lyne By-election": "./data/federal-by-elections/2008-lyne.csv.gz",
+        "2008 Mayo By-election": "./data/federal-by-elections/2008-mayo.csv.gz",
+        "2008 Gippsland By-election": "./data/federal-by-elections/2008-gippsland.csv.gz"
     }
 }
