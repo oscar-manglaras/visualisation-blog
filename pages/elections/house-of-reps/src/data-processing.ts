@@ -145,6 +145,10 @@ function processElections(data: KeyedStringObject[], electionLabel: string) {
                 results.push(roundResults)
             });
 
+            // Ensure that the round results are actually in the correct order
+            // (the order is determined by the iterator on the map returned by d3.group, which is not sorted)
+            results.sort((a,b) => (a[0]?.round ?? 0) - (b[0]?.round ?? 0))
+
             return {
                 year: electionLabel,
                 state: d[0] as State,

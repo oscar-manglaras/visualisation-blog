@@ -7,11 +7,16 @@ export async function decompressBlob(blob: Blob): Promise<string> {
 }
 
 export async function fetchCompressedFile(uri: string, compression?: 'gzip'|'deflate'): Promise<string|null> {
-    const response = await fetch(uri);
-    if (!response.ok) return null;
+    try {
+        const response = await fetch(uri);
+        if (!response.ok) return null;
 
-    const ds = new DecompressionStream(compression ?? 'gzip');
-    const decompressedStream = response.body?.pipeThrough(ds);
+        const ds = new DecompressionStream(compression ?? 'gzip');
+        const decompressedStream = response.body?.pipeThrough(ds);
 
-    return await new Response(decompressedStream).text();
+        return await new Response(decompressedStream).text();
+    } catch {
+        console.error('failed to fetch and decompress', uri)
+        return null;
+    }
 }
